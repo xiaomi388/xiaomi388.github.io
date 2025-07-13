@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <title>
+  client-go 缓存客户端解析 · Yufan Chen
+</title>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+
+
+
+
+<meta name="author" content="Yufan Chen">
+<meta name="description" content="概要: client-go 内置了一个基于 SharedInformer 的 读穿透（read-through）、写旁路（write-around） 缓存层。  GET / LIST 请求命中内存中的 Indexer，任何 写操作 则直发 API Server。这可以将控制器的读取延迟降低约 90 %，但要避免读到脏数据或掉进性能坑，你必须搞懂 同步窗口（sync window）、深拷贝 以及 字段索引（field index）。
+
+
+  为什么要用缓存？
+  
+    
+    Link to heading
+  
+
+
+  
+      
+          纯 REST（无缓存）
+          使用 DelegatingClient
+      
+  
+  
+      
+          每次 Get/List → HTTPS → API Server → etcd
+          进程内 Map 查询（0 RTT）
+      
+      
+          容易触发 QPS / watch 节流
+          读开销近乎 0，API Server 几乎无压力
+      
+      
+          集群繁忙时尾延迟 ~100 ms
+          典型延迟 &lt; 1 µs
+      
+  
+
+控制器以“读”为主：比对 期望 与 实际 状态，只偶尔写入。缓存把这些读取摊平到内存。">
+<meta name="keywords" content="">
+
+
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="client-go 缓存客户端解析">
+  <meta name="twitter:description" content="概要: client-go 内置了一个基于 SharedInformer 的 读穿透（read-through）、写旁路（write-around） 缓存层。 GET / LIST 请求命中内存中的 Indexer，任何 写操作 则直发 API Server。这可以将控制器的读取延迟降低约 90 %，但要避免读到脏数据或掉进性能坑，你必须搞懂 同步窗口（sync window）、深拷贝 以及 字段索引（field index）。
+为什么要用缓存？ Link to heading 纯 REST（无缓存） 使用 DelegatingClient 每次 Get/List → HTTPS → API Server → etcd 进程内 Map 查询（0 RTT） 容易触发 QPS / watch 节流 读开销近乎 0，API Server 几乎无压力 集群繁忙时尾延迟 ~100 ms 典型延迟 &lt; 1 µs 控制器以“读”为主：比对 期望 与 实际 状态，只偶尔写入。缓存把这些读取摊平到内存。">
+
+<meta property="og:url" content="https://xiaomi388.github.io/zh/posts/k8s-client-go-cache/">
+  <meta property="og:site_name" content="Yufan Chen">
+  <meta property="og:title" content="client-go 缓存客户端解析">
+  <meta property="og:description" content="概要: client-go 内置了一个基于 SharedInformer 的 读穿透（read-through）、写旁路（write-around） 缓存层。 GET / LIST 请求命中内存中的 Indexer，任何 写操作 则直发 API Server。这可以将控制器的读取延迟降低约 90 %，但要避免读到脏数据或掉进性能坑，你必须搞懂 同步窗口（sync window）、深拷贝 以及 字段索引（field index）。
+为什么要用缓存？ Link to heading 纯 REST（无缓存） 使用 DelegatingClient 每次 Get/List → HTTPS → API Server → etcd 进程内 Map 查询（0 RTT） 容易触发 QPS / watch 节流 读开销近乎 0，API Server 几乎无压力 集群繁忙时尾延迟 ~100 ms 典型延迟 &lt; 1 µs 控制器以“读”为主：比对 期望 与 实际 状态，只偶尔写入。缓存把这些读取摊平到内存。">
+  <meta property="og:locale" content="zh">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-07-13T14:10:00+00:00">
+    <meta property="article:modified_time" content="2025-07-13T14:10:00+00:00">
+    <meta property="article:tag" content="Kubernetes">
+    <meta property="article:tag" content="Golang">
+
+
+
+
+<link rel="canonical" href="https://xiaomi388.github.io/zh/posts/k8s-client-go-cache/">
+
+
+<link rel="preload" href="/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  
+  
+  <link rel="stylesheet" href="/css/coder.min.6445a802b9389c9660e1b07b724dcf5718b1065ed2d71b4eeaf981cc7cc5fc46.css" integrity="sha256-ZEWoArk4nJZg4bB7ck3PVxixBl7S1xtO6vmBzHzF/EY=" crossorigin="anonymous" media="screen" />
+
+
+
+
+
+
+  
+    
+    
+    <link rel="stylesheet" href="/css/coder-dark.min.a00e6364bacbc8266ad1cc81230774a1397198f8cfb7bcba29b7d6fcb54ce57f.css" integrity="sha256-oA5jZLrLyCZq0cyBIwd0oTlxmPjPt7y6KbfW/LVM5X8=" crossorigin="anonymous" media="screen" />
+  
+
+
+
+ 
+
+
+
+
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg" sizes="any">
+<link rel="icon" type="image/png" href="/images/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/images/favicon-16x16.png" sizes="16x16">
+
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+
+
+
+
+
+</head>
+
+
+
+
+
+
+<body class="preload-transitions colorscheme-auto">
+  
+<div class="float-container">
+    <a id="dark-mode-toggle" class="colorscheme-toggle">
+        <i class="fa-solid fa-adjust fa-fw" aria-hidden="true"></i>
+    </a>
+</div>
+
+
+  <main class="wrapper">
+    <nav class="navigation">
+  <section class="container">
+    
+    <a class="navigation-title" href="https://xiaomi388.github.io/zh/">
+      Yufan Chen
+    </a>
+    
+    
+      <input type="checkbox" id="menu-toggle" />
+      <label class="menu-button float-right" for="menu-toggle">
+        <i class="fa-solid fa-bars fa-fw" aria-hidden="true"></i>
+      </label>
+      <ul class="navigation-list">
+        
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/zh/posts/">博客</a>
+            </li>
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/zh/about/">关于</a>
+            </li>
+          
+        
+        
+          
+          
+          
+            
+              
+                <li class="navigation-item menu-separator">
+                  <span>|</span>
+                </li>
+                
+              
+              <li class="navigation-item">
+                <a href="/en/posts/k8s-client-go-cache/">English</a>
+              </li>
+            
+          
+        
+      </ul>
+    
+  </section>
+</nav>
+
+
+    <div class="content">
+      
+  <section class="container post">
+    <article>
+      <header>
+        <div class="post-title">
+          <h1 class="title">
+            <a class="title-link" href="https://xiaomi388.github.io/zh/posts/k8s-client-go-cache/">
+              client-go 缓存客户端解析
+            </a>
+          </h1>
+        </div>
+        <div class="post-meta">
+          <div class="date">
+            <span class="posted-on">
+              <i class="fa-solid fa-calendar" aria-hidden="true"></i>
+              <time datetime="2025-07-13T14:10:00Z">
+                七月 13, 2025
+              </time>
+            </span>
+            <span class="reading-time">
+              <i class="fa-solid fa-clock" aria-hidden="true"></i>
+              
+            </span>
+          </div>
+          
+          
+          <div class="tags">
+  <i class="fa-solid fa-tag" aria-hidden="true"></i>
+    <span class="tag">
+      <a href="/zh/tags/kubernetes/">Kubernetes</a>
+    </span>
+      <span class="separator">•</span>
+    <span class="tag">
+      <a href="/zh/tags/golang/">Golang</a>
+    </span></div>
+
+        </div>
+      </header>
+
+      <div class="post-content">
+        
+        <p><strong>概要</strong>: <code>client-go</code> 内置了一个基于 SharedInformer 的 <strong>读穿透（read-through）、写旁路（write-around）</strong> 缓存层。  <code>GET</code> / <code>LIST</code> 请求命中内存中的 <strong>Indexer</strong>，任何 <strong>写操作</strong> 则直发 API Server。这可以将控制器的读取延迟降低约 <strong>90 %</strong>，但要避免读到脏数据或掉进性能坑，你必须搞懂 <strong>同步窗口（sync window）</strong>、<strong>深拷贝</strong> 以及 <strong>字段索引（field index）</strong>。</p>
+<hr>
+<h2 id="为什么要用缓存">
+  为什么要用缓存？
+  <a class="heading-link" href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e7%94%a8%e7%bc%93%e5%ad%98">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<table>
+  <thead>
+      <tr>
+          <th>纯 REST（无缓存）</th>
+          <th>使用 <code>DelegatingClient</code></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>每次 <code>Get/List</code> → HTTPS → API Server → etcd</td>
+          <td>进程内 Map 查询（0 RTT）</td>
+      </tr>
+      <tr>
+          <td>容易触发 QPS / watch 节流</td>
+          <td>读开销近乎 0，API Server 几乎无压力</td>
+      </tr>
+      <tr>
+          <td>集群繁忙时尾延迟 ~100 ms</td>
+          <td>典型延迟 &lt; 1 µs</td>
+      </tr>
+  </tbody>
+</table>
+<p>控制器以“读”为主：比对 <strong>期望</strong> 与 <strong>实际</strong> 状态，只偶尔写入。缓存把这些读取摊平到内存。</p>
+<hr>
+<h2 id="关键组件">
+  关键组件
+  <a class="heading-link" href="#%e5%85%b3%e9%94%ae%e7%bb%84%e4%bb%b6">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<div class="mermaid">
+flowchart LR
+  A[Reflector] --> B(DeltaFIFO)
+  B --> C[Indexer]
+  C -->|Read| D(Cache Client)
+  D -->|Write| E(API Server)
+
+</div>
+
+<ol>
+<li><strong>Reflector</strong> —— 从 API Server 流式拉取 <code>ADD / UPDATE / DELETE</code> 事件</li>
+<li><strong>DeltaFIFO</strong> —— 缓冲事件，保证处理 Goroutine 不阻塞 watch</li>
+<li><strong>Store / Indexer</strong> —— 线程安全 Map，以 <code>namespace/name</code> 为键，可加二级索引</li>
+<li><strong>缓存客户端（<code>DelegatingClient</code>）</strong>
+<ul>
+<li><strong>读</strong>：<code>Get</code>、<code>List</code> → Store</li>
+<li><strong>写</strong>：<code>Create</code>、<code>Update</code>、<code>Patch</code>、<code>Delete</code> → 直发 REST</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="真正的调用链--cgetctx-key-obj">
+  真正的调用链 —— <code>c.Get(ctx, key, obj)</code>
+  <a class="heading-link" href="#%e7%9c%9f%e6%ad%a3%e7%9a%84%e8%b0%83%e7%94%a8%e9%93%be--cgetctx-key-obj">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">delegatingClient</span>) <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>,
+</span></span><span style="display:flex;"><span>                               <span style="color:#a6e22e">key</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">ObjectKey</span>,
+</span></span><span style="display:flex;"><span>                               <span style="color:#a6e22e">obj</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Object</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 1. 先从缓存 deepCopy 数据到 obj</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">obj</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 2. 缓存未同步时回退到直连 API Server</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="同步窗口sync-window">
+  同步窗口（Sync Window）
+  <a class="heading-link" href="#%e5%90%8c%e6%ad%a5%e7%aa%97%e5%8f%a3sync-window">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<ul>
+<li>启动时缓存 <strong>为空</strong></li>
+<li>首次 <code>LIST+WATCH</code> 完成后 <code>HasSynced()</code> 变为 true</li>
+<li>期间所有读都会回退到 REST</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">mgr</span>.<span style="color:#a6e22e">GetCache</span>().<span style="color:#a6e22e">WaitForCacheSync</span>(<span style="color:#a6e22e">ctx</span>)
+</span></span></code></pre></div><hr>
+<h2 id="字段索引--o1-二级查询">
+  字段索引 = O(1) 二级查询
+  <a class="heading-link" href="#%e5%ad%97%e6%ae%b5%e7%b4%a2%e5%bc%95--o1-%e4%ba%8c%e7%ba%a7%e6%9f%a5%e8%af%a2">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>想找被某个 Service 选中的所有 Pod？</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">mgr</span>.<span style="color:#a6e22e">GetFieldIndexer</span>().<span style="color:#a6e22e">IndexField</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>{},       <span style="color:#75715e">// 资源类型</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;.spec.nodeName&#34;</span>,    <span style="color:#75715e">// 字段路径</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Object</span>) []<span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">obj</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> []<span style="color:#66d9ef">string</span>{<span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">NodeName</span>}
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><p>之后：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">pods</span> <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">PodList</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pods</span>,
+</span></span><span style="display:flex;"><span>           <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">MatchingFields</span>{<span style="color:#e6db74">&#34;.spec.nodeName&#34;</span>: <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">NodeName</span>})
+</span></span></code></pre></div><p>无需网络往返，Indexer 维护了反向索引。</p>
+<hr>
+<h2 id="写操作刻意绕过缓存">
+  写操作刻意绕过缓存
+  <a class="heading-link" href="#%e5%86%99%e6%93%8d%e4%bd%9c%e5%88%bb%e6%84%8f%e7%bb%95%e8%bf%87%e7%bc%93%e5%ad%98">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p><code>Create</code> / <code>Patch</code> <strong>不会</strong> 立即反映到本地缓存。
+Informer 会在几毫秒后监听到自己的变更并更新 Store。
+👉 把缓存视为<strong>最终一致</strong>，Reconcile 循环务必幂等。</p>
+<hr>
+<h2 id="性能评估">
+  性能评估
+  <a class="heading-link" href="#%e6%80%a7%e8%83%bd%e8%af%84%e4%bc%b0">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<table>
+  <thead>
+      <tr>
+          <th>操作</th>
+          <th>直连 REST</th>
+          <th>缓存命中</th>
+          <th>提速</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>单个 <code>Get Pod</code></td>
+          <td>6.8 ms p95</td>
+          <td>35 µs p95</td>
+          <td><strong>-99.5 %</strong></td>
+      </tr>
+      <tr>
+          <td><code>List</code> 1000 个 Pods</td>
+          <td>140 ms p95</td>
+          <td>1.7 ms p95</td>
+          <td><strong>-98.8 %</strong></td>
+      </tr>
+  </tbody>
+</table>
+<p>环境：3 节点 KIND 集群 · Go 1.22 · client-go 0.30.0</p>
+<hr>
+<h2 id="常见的坑">
+  常见的坑
+  <a class="heading-link" href="#%e5%b8%b8%e8%a7%81%e7%9a%84%e5%9d%91">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<table>
+  <thead>
+      <tr>
+          <th>症状</th>
+          <th>可能原因</th>
+          <th>快速修复</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>读到旧数据</td>
+          <td>少了 deep-copy 或比较了指针</td>
+          <td>修改前先 <code>obj.DeepCopy()</code>；切勿把指针塞进 Map</td>
+      </tr>
+      <tr>
+          <td>内存飙升</td>
+          <td><code>LIST</code> 返回过大，塞满 Store</td>
+          <td>为 Informer 加 Label 选择器；缩短 resync 周期</td>
+      </tr>
+      <tr>
+          <td>偶发缓存未命中</td>
+          <td>类型未注册到 Scheme</td>
+          <td>在 <code>init()</code> 里 <code>schemeBuilder.AddToScheme</code></td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="总结">
+  总结
+  <a class="heading-link" href="#%e6%80%bb%e7%bb%93">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<ul>
+<li><strong>所有</strong> <code>GET/LIST</code> 都用缓存；不要混用自定义 REST Client</li>
+<li>启动时一定等 <code>HasSynced()</code></li>
+<li>字段索引越早加越好，成本几乎为零</li>
+<li>记住缓存最终一致，Reconcile 需幂等、可重试</li>
+</ul>
+
+      </div>
+
+
+      <footer>
+        
+
+
+        
+        
+        
+        <div class="comments">
+    <script>
+  
+    let getTheme = window.localStorage && window.localStorage.getItem("colorscheme");
+  
+    getTheme = getTheme == null ? 'preferred_color_scheme' : getTheme;
+    
+    let s = document.createElement('script');
+    s.src = 'https://giscus.app/client.js';
+    s.setAttribute('data-repo', 'xiaomi388\/xiaomi388.github.io');
+    s.setAttribute('data-repo-id', 'R_kgDOPL7jyw');
+    s.setAttribute('data-category', 'Announcements');
+    s.setAttribute('data-category-id', 'DIC_kwDOPL7jy84Cs50C');
+    s.setAttribute('data-mapping', 'pathname');
+    s.setAttribute('data-term', '');
+    s.setAttribute('data-strict', '0');
+    s.setAttribute('data-reactions-enabled', '1');
+    s.setAttribute('data-emit-metadata', '0');
+    s.setAttribute('data-input-position', 'bottom');
+    s.setAttribute('data-theme', getTheme);
+    s.setAttribute('data-lang', 'en');
+    s.setAttribute('data-loading', '');
+    s.setAttribute('crossorigin', 'anonymous');
+    s.setAttribute('async', '');
+    document.querySelector('div.comments').innerHTML = '';
+    document.querySelector('div.comments').appendChild(s);
+  
+    </script>
+    </div>
+        
+        
+        
+      </footer>
+    </article>
+
+    
+  </section>
+
+    </div>
+
+    <footer class="footer">
+  <section class="container">
+    ©
+    
+    2025
+     Yufan Chen 
+    ·
+    
+     <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> & <a href="https://github.com/luizdepra/hugo-coder/" target="_blank" rel="noopener">Coder</a>.
+    
+  </section>
+</footer>
+
+  </main>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@9.3.0/dist/mermaid.min.js"
+    integrity="sha256-QdTG1YTLLTwD3b95jLqFxpQX9uYuJMNAtVZgwKX4oYU=" crossorigin="anonymous"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+  
+
+  
+  
+  <script src="/js/coder.min.6ae284be93d2d19dad1f02b0039508d9aab3180a12a06dcc71b0b0ef7825a317.js" integrity="sha256-auKEvpPS0Z2tHwKwA5UI2aqzGAoSoG3McbCw73gloxc="></script>
+  
+
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</body>
+</html>

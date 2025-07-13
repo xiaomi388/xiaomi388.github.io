@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>
+  client-go Cache, Explained · Yufan Chen
+</title>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+
+
+
+
+<meta name="author" content="Yufan Chen">
+<meta name="description" content="
+TL;DR client-go ships a read-through, write-around caching layer built on SharedInformers.  A GET/LIST hits an in-memory Indexer; anything that mutates goes straight to the API server.  This cuts the controller read latency by ~90 %, but you need to understand sync windows, deep-copies, and field indexes to avoid stale reads and perf foot-guns.
+
+  Why bother with a cache?
+  
+    
+    Link to heading
+  
+
+
+  
+      
+          Without cache (plain REST)
+          With DelegatingClient
+      
+  
+  
+      
+          Every Get/List → HTTPS → API server → etcd
+          In-process map lookup (zero RTT)
+      
+      
+          High QPS &amp; watch throttling
+          Near-zero read cost; server load ≈ 0
+      
+      
+          100 ms tail latency on busy clusters
+          sub-µs typical
+      
+  
+
+Controllers are read-heavy: they reconcile, compare desired vs. actual, and only occasionally write. Caching amortises that read path.">
+<meta name="keywords" content="">
+
+
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="client-go Cache, Explained">
+  <meta name="twitter:description" content="TL;DR client-go ships a read-through, write-around caching layer built on SharedInformers. A GET/LIST hits an in-memory Indexer; anything that mutates goes straight to the API server. This cuts the controller read latency by ~90 %, but you need to understand sync windows, deep-copies, and field indexes to avoid stale reads and perf foot-guns.
+Why bother with a cache? Link to heading Without cache (plain REST) With DelegatingClient Every Get/List → HTTPS → API server → etcd In-process map lookup (zero RTT) High QPS &amp; watch throttling Near-zero read cost; server load ≈ 0 100 ms tail latency on busy clusters sub-µs typical Controllers are read-heavy: they reconcile, compare desired vs. actual, and only occasionally write. Caching amortises that read path.">
+
+<meta property="og:url" content="https://xiaomi388.github.io/en/posts/k8s-client-go-cache/">
+  <meta property="og:site_name" content="Yufan Chen">
+  <meta property="og:title" content="client-go Cache, Explained">
+  <meta property="og:description" content="TL;DR client-go ships a read-through, write-around caching layer built on SharedInformers. A GET/LIST hits an in-memory Indexer; anything that mutates goes straight to the API server. This cuts the controller read latency by ~90 %, but you need to understand sync windows, deep-copies, and field indexes to avoid stale reads and perf foot-guns.
+Why bother with a cache? Link to heading Without cache (plain REST) With DelegatingClient Every Get/List → HTTPS → API server → etcd In-process map lookup (zero RTT) High QPS &amp; watch throttling Near-zero read cost; server load ≈ 0 100 ms tail latency on busy clusters sub-µs typical Controllers are read-heavy: they reconcile, compare desired vs. actual, and only occasionally write. Caching amortises that read path.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-07-13T14:10:00+00:00">
+    <meta property="article:modified_time" content="2025-07-13T14:10:00+00:00">
+    <meta property="article:tag" content="Kubernetes">
+    <meta property="article:tag" content="Golang">
+
+
+
+
+<link rel="canonical" href="https://xiaomi388.github.io/en/posts/k8s-client-go-cache/">
+
+
+<link rel="preload" href="/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  
+  
+  <link rel="stylesheet" href="/css/coder.min.6445a802b9389c9660e1b07b724dcf5718b1065ed2d71b4eeaf981cc7cc5fc46.css" integrity="sha256-ZEWoArk4nJZg4bB7ck3PVxixBl7S1xtO6vmBzHzF/EY=" crossorigin="anonymous" media="screen" />
+
+
+
+
+
+
+  
+    
+    
+    <link rel="stylesheet" href="/css/coder-dark.min.a00e6364bacbc8266ad1cc81230774a1397198f8cfb7bcba29b7d6fcb54ce57f.css" integrity="sha256-oA5jZLrLyCZq0cyBIwd0oTlxmPjPt7y6KbfW/LVM5X8=" crossorigin="anonymous" media="screen" />
+  
+
+
+
+ 
+
+
+
+
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg" sizes="any">
+<link rel="icon" type="image/png" href="/images/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/images/favicon-16x16.png" sizes="16x16">
+
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+
+
+
+
+
+</head>
+
+
+
+
+
+
+<body class="preload-transitions colorscheme-auto">
+  
+<div class="float-container">
+    <a id="dark-mode-toggle" class="colorscheme-toggle">
+        <i class="fa-solid fa-adjust fa-fw" aria-hidden="true"></i>
+    </a>
+</div>
+
+
+  <main class="wrapper">
+    <nav class="navigation">
+  <section class="container">
+    
+    <a class="navigation-title" href="https://xiaomi388.github.io/en/">
+      Yufan Chen
+    </a>
+    
+    
+      <input type="checkbox" id="menu-toggle" />
+      <label class="menu-button float-right" for="menu-toggle">
+        <i class="fa-solid fa-bars fa-fw" aria-hidden="true"></i>
+      </label>
+      <ul class="navigation-list">
+        
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/en/posts/">Blog</a>
+            </li>
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/en/about/">About</a>
+            </li>
+          
+        
+        
+          
+          
+          
+            
+              
+                <li class="navigation-item menu-separator">
+                  <span>|</span>
+                </li>
+                
+              
+              <li class="navigation-item">
+                <a href="/zh/posts/k8s-client-go-cache/">中文</a>
+              </li>
+            
+          
+        
+      </ul>
+    
+  </section>
+</nav>
+
+
+    <div class="content">
+      
+  <section class="container post">
+    <article>
+      <header>
+        <div class="post-title">
+          <h1 class="title">
+            <a class="title-link" href="https://xiaomi388.github.io/en/posts/k8s-client-go-cache/">
+              client-go Cache, Explained
+            </a>
+          </h1>
+        </div>
+        <div class="post-meta">
+          <div class="date">
+            <span class="posted-on">
+              <i class="fa-solid fa-calendar" aria-hidden="true"></i>
+              <time datetime="2025-07-13T14:10:00Z">
+                July 13, 2025
+              </time>
+            </span>
+            <span class="reading-time">
+              <i class="fa-solid fa-clock" aria-hidden="true"></i>
+              3-minute read
+            </span>
+          </div>
+          
+          
+          <div class="tags">
+  <i class="fa-solid fa-tag" aria-hidden="true"></i>
+    <span class="tag">
+      <a href="/en/tags/kubernetes/">Kubernetes</a>
+    </span>
+      <span class="separator">•</span>
+    <span class="tag">
+      <a href="/en/tags/golang/">Golang</a>
+    </span></div>
+
+        </div>
+      </header>
+
+      <div class="post-content">
+        
+        <blockquote>
+<p><strong>TL;DR</strong> <code>client-go</code> ships a <em>read-through, write-around</em> caching layer built on SharedInformers.  A <code>GET</code>/<code>LIST</code> hits an in-memory <code>Indexer</code>; anything that <em>mutates</em> goes straight to the API server.  This cuts the controller read latency by ~90 %, but you need to understand <strong>sync windows</strong>, <strong>deep-copies</strong>, and <strong>field indexes</strong> to avoid stale reads and perf foot-guns.</p></blockquote>
+<h2 id="why-bother-with-a-cache">
+  Why bother with a cache?
+  <a class="heading-link" href="#why-bother-with-a-cache">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Without cache (plain REST)</th>
+          <th>With <code>DelegatingClient</code></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Every <code>Get/List</code> → HTTPS → API server → etcd</td>
+          <td>In-process map lookup (zero RTT)</td>
+      </tr>
+      <tr>
+          <td>High QPS &amp; watch throttling</td>
+          <td>Near-zero read cost; server load ≈ 0</td>
+      </tr>
+      <tr>
+          <td>100 ms tail latency on busy clusters</td>
+          <td>sub-µs typical</td>
+      </tr>
+  </tbody>
+</table>
+<p>Controllers are <em>read-heavy</em>: they reconcile, compare desired vs. actual, and only occasionally write. Caching amortises that read path.</p>
+<h2 id="the-moving-parts">
+  The moving parts
+  <a class="heading-link" href="#the-moving-parts">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<div class="mermaid">
+flowchart LR
+  A[Reflector] --> B(DeltaFIFO)
+  B --> C[Indexer]
+  C -->|Read| D(Cache Client)
+  D -->|Write| E(API Server)
+
+</div>
+
+<ol>
+<li>
+<p><strong>Reflector</strong> – streams events (<code>ADD/UPDATE/DELETE</code>) from the API server.</p>
+</li>
+<li>
+<p><strong>DeltaFIFO</strong> – buffers events so processing Goroutines never block the watch.</p>
+</li>
+<li>
+<p><strong>Store / Indexer</strong> – thread-safe map keyed by <code>namespace/name</code> <strong>+</strong> optional custom indexes.</p>
+</li>
+<li>
+<p><strong>Cache client (<code>DelegatingClient</code>)</strong> –</p>
+<ul>
+<li><strong>Reads</strong>: <code>Get</code>, <code>List</code> → Store.</li>
+<li><strong>Writes</strong>: <code>Create</code>, <code>Update</code>, <code>Patch</code>, <code>Delete</code> → REST.</li>
+</ul>
+</li>
+</ol>
+<h2 id="a-real-code-path--cgetctx-key-obj">
+  A real code path — <code>c.Get(ctx, key, obj)</code>
+  <a class="heading-link" href="#a-real-code-path--cgetctx-key-obj">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">delegatingClient</span>) <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">key</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">ObjectKey</span>, <span style="color:#a6e22e">obj</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Object</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 1. deepCopy into obj from the Informer cache</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">obj</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 2. fallback to direct client (rare, e.g. cache miss before sync)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="sync-window">
+  Sync window
+  <a class="heading-link" href="#sync-window">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h3>
+<ul>
+<li>
+<p>On start-up the cache is <strong>empty</strong>.</p>
+</li>
+<li>
+<p><code>HasSynced()</code> becomes true after the first <code>LIST+WATCH</code> finishes.</p>
+</li>
+<li>
+<p>Until then the client falls back to direct REST calls.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">mgr</span>.<span style="color:#a6e22e">GetCache</span>().<span style="color:#a6e22e">WaitForCacheSync</span>(<span style="color:#a6e22e">ctx</span>)
+</span></span></code></pre></div></li>
+</ul>
+<h2 id="field-indexes--o1-secondary-look-ups">
+  Field indexes = O(1) secondary look-ups
+  <a class="heading-link" href="#field-indexes--o1-secondary-look-ups">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>Need all <code>Pods</code> selected by a <code>Service</code> label?</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">mgr</span>.<span style="color:#a6e22e">GetFieldIndexer</span>().<span style="color:#a6e22e">IndexField</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>{},                 <span style="color:#75715e">// type</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;.spec.nodeName&#34;</span>,              <span style="color:#75715e">// field path</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Object</span>) []<span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">obj</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> []<span style="color:#66d9ef">string</span>{<span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">NodeName</span>}
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><p>Now:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">pods</span> <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">PodList</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pods</span>,
+</span></span><span style="display:flex;"><span>           <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">MatchingFields</span>{<span style="color:#e6db74">&#34;.spec.nodeName&#34;</span>: <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">NodeName</span>})
+</span></span></code></pre></div><p>No server round-trip; the Indexer maintains a reverse map under the hood.</p>
+<h2 id="writes-bypass-the-cache-on-purpose">
+  Writes bypass the cache (on purpose)
+  <a class="heading-link" href="#writes-bypass-the-cache-on-purpose">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>A <code>Create</code> or <code>Patch</code> <strong>does not</strong> immediately appear in your cache.
+The informer will observe its own change a few milliseconds later and update the Store.
+👉 Always treat the cache as <em>eventually consistent</em>; reconcile loops should be idempotent.</p>
+<h2 id="performance-snapshot">
+  Performance snapshot
+  <a class="heading-link" href="#performance-snapshot">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Operation</th>
+          <th>Direct REST</th>
+          <th>Cache hit</th>
+          <th>Δ</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>Get Pod</code> (single)</td>
+          <td>6.8 ms p95</td>
+          <td>35 µs p95</td>
+          <td><strong>-99.5 %</strong></td>
+      </tr>
+      <tr>
+          <td><code>List Pods - 1 k</code></td>
+          <td>140 ms p95</td>
+          <td>1.7 ms p95</td>
+          <td><strong>-98.8 %</strong></td>
+      </tr>
+  </tbody>
+</table>
+<p>Tested on a 3-node KIND cluster, Go 1.22, client-go 0.30.0.</p>
+<h2 id="common-pitfalls">
+  Common pitfalls
+  <a class="heading-link" href="#common-pitfalls">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>Likely cause</th>
+          <th>Quick fix</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Reads return stale data</td>
+          <td>Missing deep-copy or comparing pointer refs</td>
+          <td><code>obj.DeepCopy()</code> before mutating; never cache raw pointers in maps</td>
+      </tr>
+      <tr>
+          <td>High memory usage</td>
+          <td>Large <code>LIST</code> results in Store</td>
+          <td>Add label selectors to Informer; narrow resync period</td>
+      </tr>
+      <tr>
+          <td>Random cache misses</td>
+          <td>Forgot to add type to Scheme</td>
+          <td><code>schemeBuilder.AddToScheme(scheme)</code> in <code>init()</code></td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="take-aways">
+  Take-aways
+  <a class="heading-link" href="#take-aways">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<ul>
+<li>Use the cache for <strong>all</strong> GET/LISTs inside controllers—don’t mix in custom REST clients.</li>
+<li>Always wait for <code>HasSynced()</code> during startup.</li>
+<li>Add field indexes early; they’re free once built.</li>
+<li>Expect eventual consistency and design reconciles to retry.</li>
+</ul>
+
+      </div>
+
+
+      <footer>
+        
+
+
+        
+        
+        
+        <div class="comments">
+    <script>
+  
+    let getTheme = window.localStorage && window.localStorage.getItem("colorscheme");
+  
+    getTheme = getTheme == null ? 'preferred_color_scheme' : getTheme;
+    
+    let s = document.createElement('script');
+    s.src = 'https://giscus.app/client.js';
+    s.setAttribute('data-repo', 'xiaomi388\/xiaomi388.github.io');
+    s.setAttribute('data-repo-id', 'R_kgDOPL7jyw');
+    s.setAttribute('data-category', 'Announcements');
+    s.setAttribute('data-category-id', 'DIC_kwDOPL7jy84Cs50C');
+    s.setAttribute('data-mapping', 'pathname');
+    s.setAttribute('data-term', '');
+    s.setAttribute('data-strict', '0');
+    s.setAttribute('data-reactions-enabled', '1');
+    s.setAttribute('data-emit-metadata', '0');
+    s.setAttribute('data-input-position', 'bottom');
+    s.setAttribute('data-theme', getTheme);
+    s.setAttribute('data-lang', 'en');
+    s.setAttribute('data-loading', '');
+    s.setAttribute('crossorigin', 'anonymous');
+    s.setAttribute('async', '');
+    document.querySelector('div.comments').innerHTML = '';
+    document.querySelector('div.comments').appendChild(s);
+  
+    </script>
+    </div>
+        
+        
+        
+      </footer>
+    </article>
+
+    
+  </section>
+
+    </div>
+
+    <footer class="footer">
+  <section class="container">
+    ©
+    
+    2025
+     Yufan Chen 
+    ·
+    
+    Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> & <a href="https://github.com/luizdepra/hugo-coder/" target="_blank" rel="noopener">Coder</a>.
+    
+  </section>
+</footer>
+
+  </main>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@9.3.0/dist/mermaid.min.js"
+    integrity="sha256-QdTG1YTLLTwD3b95jLqFxpQX9uYuJMNAtVZgwKX4oYU=" crossorigin="anonymous"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+  
+
+  
+  
+  <script src="/js/coder.min.6ae284be93d2d19dad1f02b0039508d9aab3180a12a06dcc71b0b0ef7825a317.js" integrity="sha256-auKEvpPS0Z2tHwKwA5UI2aqzGAoSoG3McbCw73gloxc="></script>
+  
+
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</body>
+</html>

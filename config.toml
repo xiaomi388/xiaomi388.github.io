@@ -1,0 +1,49 @@
+baseURL = "https://xiaomi388.github.io/"
+title   = "Yufan Chen"
+theme   = "coder"
+defaultContentLanguage         = "zh"
+defaultContentLanguageInSubdir = true
+
+[languages]
+
+  [languages.en]
+    languageName = "English"
+    weight       = 1
+	contentDir   = "content/en"
+
+    [[languages.en.menu.main]]
+      name   = "Blog"
+      url    = "/en/posts/"
+      weight = 1
+    [[languages.en.menu.main]]
+      name   = "About"
+      url    = "/en/about/"
+      weight = 2
+
+  [languages.zh]
+    languageName = "中文"
+    weight       = 2
+	contentDir   = "content/zh"
+
+    [[languages.zh.menu.main]]
+      name   = "博客"
+      url    = "/zh/posts/"
+      weight = 1
+    [[languages.zh.menu.main]]
+      name   = "关于"
+      url    = "/zh/about/"
+      weight = 2
+
+[params]
+  author      = "Yufan Chen"
+  colorScheme = "auto"
+
+[params.giscus]
+  repo             = "xiaomi388/xiaomi388.github.io"
+  repoID           = "R_kgDOPL7jyw"
+  category         = "Announcements"
+  categoryID       = "DIC_kwDOPL7jy84Cs50C"
+  mapping          = "pathname"
+  reactionsEnabled = "1"
+  emitMetadata     = "0"
+  theme            = "preferred_color_scheme"
