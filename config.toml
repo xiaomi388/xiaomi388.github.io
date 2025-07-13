@@ -1,7 +1,7 @@
 baseURL = "https://xiaomi388.github.io/"
 title   = "Yufan Chen"
 theme   = "coder"
-defaultContentLanguage         = "zh"
+defaultContentLanguage         = "en"
 defaultContentLanguageInSubdir = true
 
 [languages]
