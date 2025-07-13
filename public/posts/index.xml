@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Yufan Chen</title>
+    <link>http://localhost:1313/posts/</link>
+    <description>Recent content in Posts on Yufan Chen</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 13 Jul 2025 14:10:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>client-go Cache, Explained</title>
+      <link>http://localhost:1313/posts/k8s-client-go-cache/</link>
+      <pubDate>Sun, 13 Jul 2025 14:10:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/k8s-client-go-cache/</guid>
+      <description>&lt;blockquote&gt;&#xA;&lt;p&gt;&lt;strong&gt;TL;DR&lt;/strong&gt; &lt;code&gt;client-go&lt;/code&gt; ships a &lt;em&gt;read-through, write-around&lt;/em&gt; caching layer built on SharedInformers.  A &lt;code&gt;GET&lt;/code&gt;/&lt;code&gt;LIST&lt;/code&gt; hits an in-memory &lt;code&gt;Indexer&lt;/code&gt;; anything that &lt;em&gt;mutates&lt;/em&gt; goes straight to the API server.  This cuts the controller read latency by ~90 %, but you need to understand &lt;strong&gt;sync windows&lt;/strong&gt;, &lt;strong&gt;deep-copies&lt;/strong&gt;, and &lt;strong&gt;field indexes&lt;/strong&gt; to avoid stale reads and perf foot-guns.&lt;/p&gt;&lt;/blockquote&gt;&#xA;&lt;h2 id=&#34;why-bother-with-a-cache&#34;&gt;&#xA;  Why bother with a cache?&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#why-bother-with-a-cache&#34;&gt;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xA;  &lt;/a&gt;&#xA;&lt;/h2&gt;&#xA;&lt;table&gt;&#xA;  &lt;thead&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;th&gt;Without cache (plain REST)&lt;/th&gt;&#xA;          &lt;th&gt;With &lt;code&gt;DelegatingClient&lt;/code&gt;&lt;/th&gt;&#xA;      &lt;/tr&gt;&#xA;  &lt;/thead&gt;&#xA;  &lt;tbody&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;Every &lt;code&gt;Get/List&lt;/code&gt; → HTTPS → API server → etcd&lt;/td&gt;&#xA;          &lt;td&gt;In-process map lookup (zero RTT)&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;High QPS &amp;amp; watch throttling&lt;/td&gt;&#xA;          &lt;td&gt;Near-zero read cost; server load ≈ 0&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;100 ms tail latency on busy clusters&lt;/td&gt;&#xA;          &lt;td&gt;sub-µs typical&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;  &lt;/tbody&gt;&#xA;&lt;/table&gt;&#xA;&lt;p&gt;Controllers are &lt;em&gt;read-heavy&lt;/em&gt;: they reconcile, compare desired vs. actual, and only occasionally write. Caching amortises that read path.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
