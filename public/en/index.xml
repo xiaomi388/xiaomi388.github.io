@@ -6,7 +6,7 @@
     <description>Recent content on Yufan Chen</description>
     <generator>Hugo</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 13 Jul 2025 14:10:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 07 Sep 2025 14:10:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/en/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Reflections on Recent Projects</title>
@@ -14,6 +14,13 @@
       <pubDate>Sun, 07 Sep 2025 14:10:00 +0000</pubDate>
       <guid>http://localhost:1313/en/posts/2025-work-reflection/</guid>
       <description>&lt;p&gt;It has been three years since I joined my current team. Looking back, I see things I wish I had done differently.&lt;/p&gt;&#xA;&lt;h2 id=&#34;test-infra&#34;&gt;&#xA;  Test Infra&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#test-infra&#34;&gt;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xA;  &lt;/a&gt;&#xA;&lt;/h2&gt;&#xA;&lt;p&gt;In the early stage of the project, our test infra was far from perfect, but it had one advantage: it was decoupled from the larger team&amp;rsquo;s system. While the larger team&amp;rsquo;s tests were flaky and expensive, often taking 10+ hours to run, our suite finshed under three hours. This gave us a significant boost in development speed.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Scattered Thoughts - 2025</title>
+      <link>http://localhost:1313/en/posts/micro-blog-2025/</link>
+      <pubDate>Sun, 07 Sep 2025 14:10:00 +0000</pubDate>
+      <guid>http://localhost:1313/en/posts/micro-blog-2025/</guid>
+      <description>&lt;h3 id=&#34;2025-09-07&#34;&gt;&#xA;  2025-09-07&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#2025-09-07&#34;&gt;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xA;  &lt;/a&gt;&#xA;&lt;/h3&gt;&#xA;&lt;p&gt;&amp;ldquo;To achieve strong results, AI Infra should either align upward (algorithms) or downward (hardware).&amp;rdquo;&lt;/p&gt;&#xA;&lt;p&gt;&amp;ldquo;System-level optimization needs to be led by the AI Infra team. Early involvement of the Infra team in the model design phase will save a lot of effort for future optimizations.&amp;rdquo;&lt;/p&gt;&#xA;&lt;p&gt;—— 小宇宙 42章经《关于AI Infra的一切｜对谈阶跃星辰联创朱亦博》&lt;/p&gt;</description>
     </item>
     <item>
       <title>client-go Cache, Explained</title>
