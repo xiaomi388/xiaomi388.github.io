@@ -2,24 +2,24 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Tags on Yufan Chen</title>
-    <link>https://xiaomi388.github.io/en/tags/</link>
+    <link>http://localhost:1313/en/tags/</link>
     <description>Recent content in Tags on Yufan Chen</description>
     <generator>Hugo</generator>
     <language>en</language>
     <lastBuildDate>Sun, 13 Jul 2025 14:10:00 +0000</lastBuildDate>
-    <atom:link href="https://xiaomi388.github.io/en/tags/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/en/tags/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Golang</title>
-      <link>https://xiaomi388.github.io/en/tags/golang/</link>
+      <link>http://localhost:1313/en/tags/golang/</link>
       <pubDate>Sun, 13 Jul 2025 14:10:00 +0000</pubDate>
-      <guid>https://xiaomi388.github.io/en/tags/golang/</guid>
+      <guid>http://localhost:1313/en/tags/golang/</guid>
       <description></description>
     </item>
     <item>
       <title>Kubernetes</title>
-      <link>https://xiaomi388.github.io/en/tags/kubernetes/</link>
+      <link>http://localhost:1313/en/tags/kubernetes/</link>
       <pubDate>Sun, 13 Jul 2025 14:10:00 +0000</pubDate>
-      <guid>https://xiaomi388.github.io/en/tags/kubernetes/</guid>
+      <guid>http://localhost:1313/en/tags/kubernetes/</guid>
       <description></description>
     </item>
   </channel>

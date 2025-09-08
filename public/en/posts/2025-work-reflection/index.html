@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <title>
+  Reflections on Recent Projects · Yufan Chen
+</title>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+
+
+
+
+<meta name="author" content="Yufan Chen">
+<meta name="description" content="It has been three years since I joined my current team. Looking back, I see things I wish I had done differently.
+
+  Test Infra
+  
+    
+    Link to heading
+  
+
+In the early stage of the project, our test infra was far from perfect, but it had one advantage: it was decoupled from the larger team&rsquo;s system. While the larger team&rsquo;s tests were flaky and expensive, often taking 10&#43; hours to run, our suite finshed under three hours. This gave us a significant boost in development speed.">
+<meta name="keywords" content="">
+
+
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Reflections on Recent Projects">
+  <meta name="twitter:description" content="It has been three years since I joined my current team. Looking back, I see things I wish I had done differently.
+Test Infra Link to heading In the early stage of the project, our test infra was far from perfect, but it had one advantage: it was decoupled from the larger team’s system. While the larger team’s tests were flaky and expensive, often taking 10&#43; hours to run, our suite finshed under three hours. This gave us a significant boost in development speed.">
+
+<meta property="og:url" content="http://localhost:1313/en/posts/2025-work-reflection/">
+  <meta property="og:site_name" content="Yufan Chen">
+  <meta property="og:title" content="Reflections on Recent Projects">
+  <meta property="og:description" content="It has been three years since I joined my current team. Looking back, I see things I wish I had done differently.
+Test Infra Link to heading In the early stage of the project, our test infra was far from perfect, but it had one advantage: it was decoupled from the larger team’s system. While the larger team’s tests were flaky and expensive, often taking 10&#43; hours to run, our suite finshed under three hours. This gave us a significant boost in development speed.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-09-07T14:10:00+00:00">
+    <meta property="article:modified_time" content="2025-07-13T14:10:00+00:00">
+
+
+
+
+<link rel="canonical" href="http://localhost:1313/en/posts/2025-work-reflection/">
+
+
+<link rel="preload" href="/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  
+  
+  <link rel="stylesheet" href="/css/coder.css" media="screen">
+
+
+
+
+
+
+  
+    
+    
+    <link rel="stylesheet" href="/css/coder-dark.css" media="screen">
+  
+
+
+
+ 
+
+
+
+
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg" sizes="any">
+<link rel="icon" type="image/png" href="/images/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/images/favicon-16x16.png" sizes="16x16">
+
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+
+
+
+
+
+</head>
+
+
+
+
+
+
+<body class="preload-transitions colorscheme-auto">
+  
+<div class="float-container">
+    <a id="dark-mode-toggle" class="colorscheme-toggle">
+        <i class="fa-solid fa-adjust fa-fw" aria-hidden="true"></i>
+    </a>
+</div>
+
+
+  <main class="wrapper">
+    <nav class="navigation">
+  <section class="container">
+    
+    <a class="navigation-title" href="http://localhost:1313/en/">
+      Yufan Chen
+    </a>
+    
+    
+      <input type="checkbox" id="menu-toggle" />
+      <label class="menu-button float-right" for="menu-toggle">
+        <i class="fa-solid fa-bars fa-fw" aria-hidden="true"></i>
+      </label>
+      <ul class="navigation-list">
+        
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/en/posts/">Blog</a>
+            </li>
+          
+            <li class="navigation-item">
+              <a class="navigation-link " href="/en/about/">About</a>
+            </li>
+          
+        
+        
+          
+          
+          
+            
+              
+                <li class="navigation-item menu-separator">
+                  <span>|</span>
+                </li>
+                
+              
+              <li class="navigation-item">
+                <a href="/zh/posts/2025-work-reflection/">中文</a>
+              </li>
+            
+          
+        
+      </ul>
+    
+  </section>
+</nav>
+
+
+    <div class="content">
+      
+  <section class="container post">
+    <article>
+      <header>
+        <div class="post-title">
+          <h1 class="title">
+            <a class="title-link" href="http://localhost:1313/en/posts/2025-work-reflection/">
+              Reflections on Recent Projects
+            </a>
+          </h1>
+        </div>
+        <div class="post-meta">
+          <div class="date">
+            <span class="posted-on">
+              <i class="fa-solid fa-calendar" aria-hidden="true"></i>
+              <time datetime="2025-09-07T14:10:00Z">
+                September 7, 2025
+              </time>
+            </span>
+            <span class="reading-time">
+              <i class="fa-solid fa-clock" aria-hidden="true"></i>
+              4-minute read
+            </span>
+          </div>
+          
+          
+          
+        </div>
+      </header>
+
+      <div class="post-content">
+        
+        <p>It has been three years since I joined my current team. Looking back, I see things I wish I had done differently.</p>
+<h2 id="test-infra">
+  Test Infra
+  <a class="heading-link" href="#test-infra">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>In the early stage of the project, our test infra was far from perfect, but it had one advantage: it was decoupled from the larger team&rsquo;s system. While the larger team&rsquo;s tests were flaky and expensive, often taking 10+ hours to run, our suite finshed under three hours. This gave us a significant boost in development speed.</p>
+<p>As the product became more complex, however, the trade-offs became clear. Maintaining our own infra and building tests on top of it consumed more and more of our time. Simulating dependency services and data grew increasingly difficult. Meanwhile, the larger team&rsquo;s infra mutured and benefited from a dedicated team focused solely on its maintenance and evolution.</p>
+<p>This created two problems:</p>
+<ul>
+<li>High maintenance cost: We often spent more time maintaining infra than developing features.</li>
+<li>Misleading signals: Because our tests weren&rsquo;t integrated with the larger system, they sometimes gave a false sense of completion. Leaders and PMs would see tests passing and assume the feature was &ldquo;done&rdquo;, only for issues to appear later in staging, where our fake dependencies fell short. This disrupted release flow and added unnecessary churn.</li>
+</ul>
+<p>Looking back, the better approach would have been to use our dedicated test infra only as a development acceleator, not as a validation signal. A feature should only be considered as &ldquo;verified&rdquo; once tested in a high-fidelity environment(like staging). Risks from limited test coverage should also be explicitly called out so PMs and leaders can understand the resource gaps and adjust priorities accordingly.</p>
+<h2 id="tech-debt">
+  Tech Debt
+  <a class="heading-link" href="#tech-debt">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>It&rsquo;s tempting to defer the long term fix to a later release and use a short term mitigation or workaround for the current release, especifally when deadlines are tight. However, this often creates hidden costs. When customers encounter issues in the current release, we end up spending even more time walking them through the workaround. Additionally, upgrades become more complex. Extra effort is required to remove or untangle the temporary fixes in the next release. In the end, these shortcuts usually cost more time and effort than addressing the issue properly from the start.</p>
+<h2 id="regular-sync-with-upstreamdownstream-teams">
+  Regular Sync with Upstream/Downstream teams
+  <a class="heading-link" href="#regular-sync-with-upstreamdownstream-teams">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>In the very early stage of my career, I didn&rsquo;t invest enough offort in regularly syncing with upstream and downstream teams. This led to two issues:</p>
+<ol>
+<li>
+<p>API design misalignment: Without fully understanding the downstream team&rsquo;s business context, some APIs I designed were not flexible enough. When new features came in, the existing APIs either didn&rsquo;t fit the requirements or became confusing after patches. Similarly, lacking context from upstream teams made it difficult to influence their API design or provide timely feedback, which often forced us to build hacks and workarounds on our side.</p>
+</li>
+<li>
+<p>Wasted effort due to missing updates: Occasionally, a feature that seemed critical to us was actually deprioritized by the downstream team. Since we weren&rsquo;t aware of the latest decisions, we spent significant effort building features that ended up unused.</p>
+</li>
+<li>
+<p>Delayed integration testing: By not syncing regularly, we missed opportunities to run integration tests with other teams. As a result, issues surfaced only after the release was cut, forcing late-stage fixes and increasing delivery risk.</p>
+</li>
+</ol>
+<h2 id="documentation--runbook">
+  Documentation / Runbook
+  <a class="heading-link" href="#documentation--runbook">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>Early on, I tended to resist writing documentation or runbooks, often treating them as a lower priority. However, I&rsquo;ve learned that the lack of clear documentation actually costs more time in the long run. Without it, teammates/operators repeatedly ping me for clarifications, and I end up answering the same question multiple times. Well-written documentation and runbooks not only save time but also help the team operate more independently and consistently.</p>
+<h2 id="alignment-with-the-larger-team">
+  Alignment with the Larger Team
+  <a class="heading-link" href="#alignment-with-the-larger-team">
+    <i class="fa-solid fa-link" aria-hidden="true" title="Link to heading"></i>
+    <span class="sr-only">Link to heading</span>
+  </a>
+</h2>
+<p>Another challenge has been that our team operated somewhat independently from the larger organization. As a result, the broader team often lacked visability into our priorities and the difficulties we faced. At the same time, we did not pay enough attention to the larger team&rsquo;s horizontal initiatives or fully adopt their shared services.</p>
+<p>This detachment created inefficiencies: instead of leveraging common issues, we ended up maintaining many systems on our own. For example, our test infra as mentioned in the previous section. In hindsight, aligning more closely with the larger team&rsquo;s direction and actively engaging in their shared efforts would have reduced duplicated work, improved integration, and given our challenges more visability at the organization level.</p>
+
+      </div>
+
+
+      <footer>
+        
+
+
+        
+        
+        
+        <div class="comments">
+    <script>
+  
+    let getTheme = window.localStorage && window.localStorage.getItem("colorscheme");
+  
+    getTheme = getTheme == null ? 'preferred_color_scheme' : getTheme;
+    
+    let s = document.createElement('script');
+    s.src = 'https://giscus.app/client.js';
+    s.setAttribute('data-repo', 'xiaomi388\/xiaomi388.github.io');
+    s.setAttribute('data-repo-id', 'R_kgDOPL7jyw');
+    s.setAttribute('data-category', 'Announcements');
+    s.setAttribute('data-category-id', 'DIC_kwDOPL7jy84Cs50C');
+    s.setAttribute('data-mapping', 'pathname');
+    s.setAttribute('data-term', '');
+    s.setAttribute('data-strict', '0');
+    s.setAttribute('data-reactions-enabled', '1');
+    s.setAttribute('data-emit-metadata', '0');
+    s.setAttribute('data-input-position', 'bottom');
+    s.setAttribute('data-theme', getTheme);
+    s.setAttribute('data-lang', 'en');
+    s.setAttribute('data-loading', '');
+    s.setAttribute('crossorigin', 'anonymous');
+    s.setAttribute('async', '');
+    document.querySelector('div.comments').innerHTML = '';
+    document.querySelector('div.comments').appendChild(s);
+  
+    </script>
+    </div>
+        
+        
+        
+      </footer>
+    </article>
+
+    
+  </section>
+
+    </div>
+
+    <footer class="footer">
+  <section class="container">
+    ©
+    
+    2025
+     Yufan Chen 
+    ·
+    
+    Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> & <a href="https://github.com/luizdepra/hugo-coder/" target="_blank" rel="noopener">Coder</a>.
+    
+  </section>
+</footer>
+
+  </main>
+
+  
+
+  
+  
+  <script src="/js/coder.js"></script>
+  
+
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</body>
+</html>

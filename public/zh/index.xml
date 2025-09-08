@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Yufan Chen</title>
-    <link>https://xiaomi388.github.io/zh/</link>
+    <link>http://localhost:1313/zh/</link>
     <description>Recent content on Yufan Chen</description>
     <generator>Hugo</generator>
     <language>zh</language>
     <lastBuildDate>Sun, 13 Jul 2025 14:10:00 +0000</lastBuildDate>
-    <atom:link href="https://xiaomi388.github.io/zh/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/zh/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>client-go 缓存客户端解析</title>
-      <link>https://xiaomi388.github.io/zh/posts/k8s-client-go-cache/</link>
+      <link>http://localhost:1313/zh/posts/k8s-client-go-cache/</link>
       <pubDate>Sun, 13 Jul 2025 14:10:00 +0000</pubDate>
-      <guid>https://xiaomi388.github.io/zh/posts/k8s-client-go-cache/</guid>
+      <guid>http://localhost:1313/zh/posts/k8s-client-go-cache/</guid>
       <description>&lt;p&gt;&lt;strong&gt;概要&lt;/strong&gt;: &lt;code&gt;client-go&lt;/code&gt; 内置了一个基于 SharedInformer 的 &lt;strong&gt;读穿透（read-through）、写旁路（write-around）&lt;/strong&gt; 缓存层。  &lt;code&gt;GET&lt;/code&gt; / &lt;code&gt;LIST&lt;/code&gt; 请求命中内存中的 &lt;strong&gt;Indexer&lt;/strong&gt;，任何 &lt;strong&gt;写操作&lt;/strong&gt; 则直发 API Server。这可以将控制器的读取延迟降低约 &lt;strong&gt;90 %&lt;/strong&gt;，但要避免读到脏数据或掉进性能坑，你必须搞懂 &lt;strong&gt;同步窗口（sync window）&lt;/strong&gt;、&lt;strong&gt;深拷贝&lt;/strong&gt; 以及 &lt;strong&gt;字段索引（field index）&lt;/strong&gt;。&lt;/p&gt;&#xA;&lt;hr&gt;&#xA;&lt;h2 id=&#34;为什么要用缓存&#34;&gt;&#xA;  为什么要用缓存？&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e7%94%a8%e7%bc%93%e5%ad%98&#34;&gt;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xA;  &lt;/a&gt;&#xA;&lt;/h2&gt;&#xA;&lt;table&gt;&#xA;  &lt;thead&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;th&gt;纯 REST（无缓存）&lt;/th&gt;&#xA;          &lt;th&gt;使用 &lt;code&gt;DelegatingClient&lt;/code&gt;&lt;/th&gt;&#xA;      &lt;/tr&gt;&#xA;  &lt;/thead&gt;&#xA;  &lt;tbody&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;每次 &lt;code&gt;Get/List&lt;/code&gt; → HTTPS → API Server → etcd&lt;/td&gt;&#xA;          &lt;td&gt;进程内 Map 查询（0 RTT）&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;容易触发 QPS / watch 节流&lt;/td&gt;&#xA;          &lt;td&gt;读开销近乎 0，API Server 几乎无压力&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;集群繁忙时尾延迟 ~100 ms&lt;/td&gt;&#xA;          &lt;td&gt;典型延迟 &amp;lt; 1 µs&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;  &lt;/tbody&gt;&#xA;&lt;/table&gt;&#xA;&lt;p&gt;控制器以“读”为主：比对 &lt;strong&gt;期望&lt;/strong&gt; 与 &lt;strong&gt;实际&lt;/strong&gt; 状态，只偶尔写入。缓存把这些读取摊平到内存。&lt;/p&gt;</description>
     </item>
   </channel>
