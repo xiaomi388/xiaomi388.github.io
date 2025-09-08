@@ -12,7 +12,7 @@ Software engineer specializing in cloud computing and computer networking, based
 
 ### Current work & core skills  
 
-- SWE on Google Distributed Cloud
+- SWE on Google Cloud Platform
 - Go • Kubernetes • Networking
 
 ### Values & working principles  

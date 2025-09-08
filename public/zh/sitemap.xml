@@ -80,6 +80,19 @@
                 href="http://localhost:1313/zh/tags/"
                 />
   </url><url>
+    <loc>http://localhost:1313/zh/posts/2025-work-reflection/</loc>
+    <lastmod>2025-07-13T14:10:00+00:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://localhost:1313/en/posts/2025-work-reflection/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh"
+                href="http://localhost:1313/zh/posts/2025-work-reflection/"
+                />
+  </url><url>
     <loc>http://localhost:1313/zh/posts/</loc>
     <lastmod>2025-07-13T14:10:00+00:00</lastmod>
     <xhtml:link

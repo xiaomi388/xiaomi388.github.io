@@ -2,17 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://localhost:1313/en/about/</loc>
-    <lastmod>2025-07-13T13:56:19-07:00</lastmod>
+    <loc>http://localhost:1313/en/posts/</loc>
+    <lastmod>2025-07-13T14:10:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="zh"
-                href="http://localhost:1313/zh/about/"
+                href="http://localhost:1313/zh/posts/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="http://localhost:1313/en/about/"
+                href="http://localhost:1313/en/posts/"
+                />
+  </url><url>
+    <loc>http://localhost:1313/en/posts/2025-work-reflection/</loc>
+    <lastmod>2025-07-13T14:10:00+00:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh"
+                href="http://localhost:1313/zh/posts/2025-work-reflection/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://localhost:1313/en/posts/2025-work-reflection/"
                 />
   </url><url>
     <loc>http://localhost:1313/en/</loc>
@@ -26,6 +39,19 @@
                 rel="alternate"
                 hreflang="en"
                 href="http://localhost:1313/en/"
+                />
+  </url><url>
+    <loc>http://localhost:1313/en/about/</loc>
+    <lastmod>2025-07-13T13:56:19-07:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh"
+                href="http://localhost:1313/zh/about/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://localhost:1313/en/about/"
                 />
   </url><url>
     <loc>http://localhost:1313/en/posts/k8s-client-go-cache/</loc>
@@ -66,22 +92,6 @@
                 hreflang="en"
                 href="http://localhost:1313/en/tags/kubernetes/"
                 />
-  </url><url>
-    <loc>http://localhost:1313/en/posts/</loc>
-    <lastmod>2025-07-13T14:10:00+00:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh"
-                href="http://localhost:1313/zh/posts/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="http://localhost:1313/en/posts/"
-                />
-  </url><url>
-    <loc>http://localhost:1313/en/posts/2025-work-reflection/</loc>
-    <lastmod>2025-07-13T14:10:00+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/en/tags/</loc>
     <lastmod>2025-07-13T14:10:00+00:00</lastmod>

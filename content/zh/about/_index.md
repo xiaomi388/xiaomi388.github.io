@@ -13,7 +13,7 @@ Hi 👋 我是 **Yufan**.
 
 ### 当前工作与核心技能  
 
-- Google Distributed Cloud 软件工程师  
+- Google Cloud Platform 软件工程师  
 - Go • Kubernetes • 计算机网络
 
 ### 价值观
