@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+<head>
   <title>
   client-go Cache, Explained · Yufan Chen
 </title>
@@ -54,7 +54,7 @@ Controllers are read-heavy: they reconcile, compare desired vs. actual, and only
   <meta name="twitter:description" content="TL;DR client-go ships a read-through, write-around caching layer built on SharedInformers. A GET/LIST hits an in-memory Indexer; anything that mutates goes straight to the API server. This cuts the controller read latency by ~90 %, but you need to understand sync windows, deep-copies, and field indexes to avoid stale reads and perf foot-guns.
 Why bother with a cache? Link to heading Without cache (plain REST) With DelegatingClient Every Get/List → HTTPS → API server → etcd In-process map lookup (zero RTT) High QPS &amp; watch throttling Near-zero read cost; server load ≈ 0 100 ms tail latency on busy clusters sub-µs typical Controllers are read-heavy: they reconcile, compare desired vs. actual, and only occasionally write. Caching amortises that read path.">
 
-<meta property="og:url" content="http://localhost:1313/en/posts/k8s-client-go-cache/">
+<meta property="og:url" content="https://xiaomi388.github.io/en/posts/k8s-client-go-cache/">
   <meta property="og:site_name" content="Yufan Chen">
   <meta property="og:title" content="client-go Cache, Explained">
   <meta property="og:description" content="TL;DR client-go ships a read-through, write-around caching layer built on SharedInformers. A GET/LIST hits an in-memory Indexer; anything that mutates goes straight to the API server. This cuts the controller read latency by ~90 %, but you need to understand sync windows, deep-copies, and field indexes to avoid stale reads and perf foot-guns.
@@ -70,7 +70,7 @@ Why bother with a cache? Link to heading Without cache (plain REST) With Delegat
 
 
 
-<link rel="canonical" href="http://localhost:1313/en/posts/k8s-client-go-cache/">
+<link rel="canonical" href="https://xiaomi388.github.io/en/posts/k8s-client-go-cache/">
 
 
 <link rel="preload" href="/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
@@ -80,7 +80,7 @@ Why bother with a cache? Link to heading Without cache (plain REST) With Delegat
 
   
   
-  <link rel="stylesheet" href="/css/coder.css" media="screen">
+  <link rel="stylesheet" href="/css/coder.min.6445a802b9389c9660e1b07b724dcf5718b1065ed2d71b4eeaf981cc7cc5fc46.css" integrity="sha256-ZEWoArk4nJZg4bB7ck3PVxixBl7S1xtO6vmBzHzF/EY=" crossorigin="anonymous" media="screen" />
 
 
 
@@ -90,7 +90,7 @@ Why bother with a cache? Link to heading Without cache (plain REST) With Delegat
   
     
     
-    <link rel="stylesheet" href="/css/coder-dark.css" media="screen">
+    <link rel="stylesheet" href="/css/coder-dark.min.a00e6364bacbc8266ad1cc81230774a1397198f8cfb7bcba29b7d6fcb54ce57f.css" integrity="sha256-oA5jZLrLyCZq0cyBIwd0oTlxmPjPt7y6KbfW/LVM5X8=" crossorigin="anonymous" media="screen" />
   
 
 
@@ -138,7 +138,7 @@ Why bother with a cache? Link to heading Without cache (plain REST) With Delegat
     <nav class="navigation">
   <section class="container">
     
-    <a class="navigation-title" href="http://localhost:1313/en/">
+    <a class="navigation-title" href="https://xiaomi388.github.io/en/">
       Yufan Chen
     </a>
     
@@ -189,7 +189,7 @@ Why bother with a cache? Link to heading Without cache (plain REST) With Delegat
       <header>
         <div class="post-title">
           <h1 class="title">
-            <a class="title-link" href="http://localhost:1313/en/posts/k8s-client-go-cache/">
+            <a class="title-link" href="https://xiaomi388.github.io/en/posts/k8s-client-go-cache/">
               client-go Cache, Explained
             </a>
           </h1>
@@ -508,7 +508,7 @@ The informer will observe its own change a few milliseconds later and update the
 
   
   
-  <script src="/js/coder.js"></script>
+  <script src="/js/coder.min.6ae284be93d2d19dad1f02b0039508d9aab3180a12a06dcc71b0b0ef7825a317.js" integrity="sha256-auKEvpPS0Z2tHwKwA5UI2aqzGAoSoG3McbCw73gloxc="></script>
   
 
   
