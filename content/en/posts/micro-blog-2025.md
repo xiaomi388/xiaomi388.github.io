@@ -4,7 +4,7 @@ date       = 2025-09-07T14:10:00
 tags       = []
 series     = []
 draft      = false
-lastmod    = 2025-09-07T14:10:00
+lastmod    = 2025-09-08T14:10:00
 +++
 
 ### 2025-09-08
