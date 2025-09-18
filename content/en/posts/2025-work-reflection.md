@@ -45,3 +45,10 @@ Early on, I tended to resist writing documentation or runbooks, often treating t
 Another challenge has been that our team operated somewhat independently from the larger organization. As a result, the broader team often lacked visability into our priorities and the difficulties we faced. At the same time, we did not pay enough attention to the larger team's horizontal initiatives or fully adopt their shared services.
 
 This detachment created inefficiencies: instead of leveraging common issues, we ended up maintaining many systems on our own. For example, our test infra as mentioned in the previous section. In hindsight, aligning more closely with the larger team's direction and actively engaging in their shared efforts would have reduced duplicated work, improved integration, and given our challenges more visability at the organization level.
+
+## Version Skew / Backward Compatability
+
+Several bugs arose due to version skew because of the incorrect assumption that, after an upgrade, all components would immediately run the same version. In reality, one component might be still in an old version while another expects it to have already upgraded, leading to mismatched behavior and unexpected responses. 
+
+To avoid this, our testing should explicitly cover mixed-version scenarios to ensure backward compatability during rollouts.
+
