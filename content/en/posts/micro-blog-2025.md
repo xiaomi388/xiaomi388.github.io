@@ -7,6 +7,10 @@ draft      = false
 lastmod    = 2025-09-08T14:10:00
 +++
 
+### 2025-10-02
+
+Chris: "We probably should have been interviewing for code review and not leetcode probelm".
+
 ### 2025-09-08
 
 Qu Kai: What are the similarities and differences between mobile internet Infra and AI Infra?
