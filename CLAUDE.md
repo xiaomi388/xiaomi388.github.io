@@ -45,7 +45,7 @@ Every post under `en/posts/` **must** have a matching counterpart in `zh/posts/`
 
 ## Micro-blog
 
-`content/en/posts/micro-blog-2025.md` (and its `zh` counterpart) is a running log of scattered thoughts — quotes, observations, and short reflections — rather than a standalone article. New entries are prepended at the top of the post body under a `### YYYY-MM-DD` heading. When adding a thought, append it to **both** language files and update `lastmod` in each.
+`content/en/posts/micro-blog.md` (and its `zh` counterpart) is a permanent running log of scattered thoughts — quotes, observations, and short reflections spanning all years — rather than a standalone article. New entries are prepended at the top of the post body under a `### YYYY-MM-DD` heading. When adding a thought, add it to **both** language files and update `lastmod` in each.
 
 ## Front Matter Convention
 

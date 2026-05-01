@@ -1,5 +1,5 @@
 +++
-title      = "Scattered Thoughts - 2025"
+title      = "Scattered Thoughts"
 date       = 2025-09-07T14:10:00
 tags       = []
 series     = []
