@@ -41,7 +41,11 @@ content/
     posts/               # Chinese blog posts
 ```
 
-Every post under `en/posts/` should have a matching counterpart in `zh/posts/` with the same filename. The site does **not** auto-translate — both versions must be written manually.
+Every post under `en/posts/` **must** have a matching counterpart in `zh/posts/` with the same filename. The site does **not** auto-translate — both versions must be written manually. Never publish only one language version of a post.
+
+## Micro-blog
+
+`content/en/posts/micro-blog-2025.md` (and its `zh` counterpart) is a running log of scattered thoughts — quotes, observations, and short reflections — rather than a standalone article. New entries are prepended at the top of the post body under a `### YYYY-MM-DD` heading. When adding a thought, append it to **both** language files and update `lastmod` in each.
 
 ## Front Matter Convention
 
