@@ -1,0 +1,387 @@
+/* =============================================================================
+   Notes — Shell & Components
+   Spacing, layout, and site-chrome components.
+   Designed to feel like the hugo-coder blog but with slightly more room.
+   Depends on colors_and_type.css.
+   ============================================================================= */
+
+/* ------------------------------------------------------------------
+   1 · RESET (light-touch, matching Coder)
+   ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+html { line-height: 1.15; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4,h5,h6 { margin: 0; color: var(--fg); }
+p { margin: 0; }
+img { border-style: none; max-width: 100%; }
+button, input, select, textarea { font-family: inherit; font-size: 100%; margin: 0; }
+button { cursor: pointer; }
+hr { box-sizing: content-box; height: 0; overflow: visible; border: none; border-top: 1px solid var(--border); margin: 0; }
+
+/* ------------------------------------------------------------------
+   2 · SPACING TOKENS
+   ------------------------------------------------------------------ */
+:root {
+  --s-1:  0.25rem;  /*  4px */
+  --s-2:  0.5rem;   /*  8px */
+  --s-3:  0.75rem;  /* 12px */
+  --s-4:  1rem;     /* 16px */
+  --s-5:  1.5rem;   /* 24px */
+  --s-6:  2rem;     /* 32px */
+  --s-7:  3rem;     /* 48px */
+  --s-8:  4rem;     /* 64px */
+  --s-9:  6rem;     /* 96px */
+
+  /* Layout — matching the Coder theme's container width */
+  --container-max: 42rem;   /* ~672px  single-column reading width */
+  --container-wide: 56rem;  /* ~896px  wider pages (sandbox index)  */
+  --gutter: 1.5rem;
+
+  /* Radii — clean and functional */
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-pill: 999px;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 150ms;
+
+  /* One subtle shadow — for hover lift on sandbox cards only */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-dark: 0 2px 8px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ------------------------------------------------------------------
+   3 · CONTAINER HELPERS
+   ------------------------------------------------------------------ */
+.container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+.container-wide {
+  max-width: var(--container-wide);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* ------------------------------------------------------------------
+   4 · NAV — matches the Coder theme structure exactly
+   navigation-title (site name) + navigation-list (links + separator + lang)
+   ------------------------------------------------------------------ */
+.navigation {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.navigation .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.5rem;
+  gap: var(--s-4);
+}
+.navigation-title {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--fg);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.navigation-title:hover { text-decoration: none; color: var(--fg); }
+
+.navigation-list {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.navigation-item { display: flex; align-items: center; }
+
+.navigation-link {
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  text-decoration: none;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-sm);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.navigation-link:hover, .navigation-link:focus { color: var(--fg); text-decoration: none; }
+.navigation-link[aria-current='page'] { color: var(--fg); font-weight: 500; }
+
+/* Separator pipe — matches blog's | between nav and language */
+.menu-separator { color: var(--border-strong); padding: 0 var(--s-2); font-size: var(--fs-sm); user-select: none; }
+
+/* Theme / language toggle — inherits from Coder float button but inline */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; height: 2rem;
+  border-radius: var(--r-sm);
+  border: none;
+  background: transparent;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.nav-toggle:hover { color: var(--fg); background: var(--bg-secondary); }
+
+/* ------------------------------------------------------------------
+   5 · SANDBOX INDEX  — the main page type for Notes
+   A clean list of interactive sandboxes. More spacious than a blog list.
+   ------------------------------------------------------------------ */
+
+/* Section heading above the list */
+.index-heading {
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.sandbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Each sandbox entry — a clean row */
+.sandbox-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: var(--s-1) var(--s-4);
+  padding: var(--s-5) var(--s-2);
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--dur) var(--ease);
+  border-radius: var(--r-sm);
+}
+.sandbox-item:hover { background: var(--bg-secondary); text-decoration: none; color: inherit; }
+.sandbox-item:hover .sandbox-title { color: var(--accent); }
+
+.sandbox-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--fg);
+  transition: color var(--dur) var(--ease);
+  grid-column: 1;
+  grid-row: 1;
+  line-height: var(--lh-snug);
+}
+.sandbox-desc {
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+  line-height: var(--lh-normal);
+  grid-column: 1;
+  grid-row: 2;
+  margin-top: var(--s-1);
+}
+.sandbox-meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  white-space: nowrap;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  padding-top: 0.2rem;
+}
+
+/* ------------------------------------------------------------------
+   6 · TAG PILL — matches Coder exactly
+   ------------------------------------------------------------------ */
+.tag {
+  display: inline-block;
+  background: var(--tag-bg);
+  color: var(--tag-fg);
+  font-size: var(--fs-xs);
+  padding: 0.2em 0.6em;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  transition: background var(--dur) var(--ease);
+}
+.tag:hover { background: var(--border-strong); text-decoration: none; color: var(--tag-fg); }
+
+.tags { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+
+/* ------------------------------------------------------------------
+   7 · POST META LINE — date + reading-time with FA icons (matches blog)
+   ------------------------------------------------------------------ */
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4);
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+  margin-top: var(--s-3);
+}
+.post-meta .fa, .post-meta .fas { margin-right: 0.3em; font-size: 0.85em; }
+.post-meta .separator { color: var(--border-strong); }
+
+/* ------------------------------------------------------------------
+   8 · SANDBOX PAGE WRAPPER
+   The chrome wrapper around a sandbox. The interior is its own world.
+   ------------------------------------------------------------------ */
+.sandbox-header { padding: var(--s-7) 0 var(--s-5); }
+.sandbox-header .breadcrumb {
+  font-size: var(--fs-sm); color: var(--fg-3);
+  margin-bottom: var(--s-5);
+  display: flex; align-items: center; gap: var(--s-2);
+}
+.sandbox-header h1 { font-size: var(--fs-2xl); font-weight: 700; line-height: var(--lh-tight); }
+.sandbox-frame {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin: var(--s-6) 0;
+}
+.sandbox-frame-caption {
+  padding: var(--s-2) var(--s-4);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Prev/next navigation between sandboxes */
+.sandbox-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-6) 0;
+  border-top: 1px solid var(--border);
+  margin-top: var(--s-6);
+}
+.sandbox-nav a {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.sandbox-nav a:hover { color: var(--accent); text-decoration: none; }
+.sandbox-nav .nav-dir { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--fg-3); }
+.sandbox-nav .nav-title { font-weight: 500; color: var(--fg); }
+
+/* ------------------------------------------------------------------
+   9 · CONTENT PROSE  — for the description/intro on sandbox pages
+   ------------------------------------------------------------------ */
+.content {
+  font-size: var(--fs-md);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-2);
+  max-width: var(--measure);
+}
+.content p + p { margin-top: var(--s-5); }
+.content h2 { font-size: var(--fs-xl); font-weight: 600; margin-top: var(--s-7); margin-bottom: var(--s-3); }
+.content h3 { font-size: var(--fs-lg); font-weight: 600; margin-top: var(--s-6); margin-bottom: var(--s-2); }
+.content blockquote {
+  border-left: 2px solid var(--border-strong);
+  padding-left: var(--s-4);
+  margin: var(--s-5) 0;
+  color: var(--fg-3);
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------
+   10 · FOOTER — matches Coder footer
+   ------------------------------------------------------------------ */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: var(--s-6) 0 var(--s-7);
+  margin-top: var(--s-9);
+}
+.footer .container {
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+  text-align: center;
+}
+.footer a { color: var(--accent); }
+.footer a:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------------
+   11 · BUTTON — for sandbox controls (step, run, reset)
+   ------------------------------------------------------------------ */
+.btn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.btn:hover { background: var(--bg-code); border-color: var(--fg-3); }
+.btn:active { transform: translateY(1px); }
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* ------------------------------------------------------------------
+   12 · ABOUT PAGE
+   ------------------------------------------------------------------ */
+.about-centered {
+  text-align: center;
+  padding: var(--s-9) 0 var(--s-7);
+}
+.about-centered h1 { font-size: var(--fs-2xl); font-weight: 700; }
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-4);
+  margin-top: var(--s-5);
+  list-style: none;
+  padding: 0;
+}
+.about-links a { color: var(--fg-2); font-size: var(--fs-sm); }
+.about-links a:hover { color: var(--accent); text-decoration: none; }
+.about-links .fa { margin-right: 0.3em; }
+
+/* ------------------------------------------------------------------
+   UTILITY
+   ------------------------------------------------------------------ */
+.mt-0 { margin-top: 0; }
+.mt-4 { margin-top: var(--s-4); }
+.mt-5 { margin-top: var(--s-5); }
+.mt-6 { margin-top: var(--s-6); }
+.mt-7 { margin-top: var(--s-7); }
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: var(--s-2); }
+.gap-3 { gap: var(--s-3); }
+.gap-4 { gap: var(--s-4); }
+.items-center { align-items: center; }
+.text-muted { color: var(--fg-3); }

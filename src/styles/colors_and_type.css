@@ -1,0 +1,214 @@
+/* =============================================================================
+   Notes (notes.xiaomi388.com) — Design System · Foundations
+   Grounded in the hugo-coder blog at blog.xiaomi388.com.
+   Shares the same clean sans-serif system font, white/dark palette, and blue
+   accent as the blog. Notes is allowed to be more crafted — the only additions
+   are a proper monospace for code/meta and slightly more generous spacing.
+   ============================================================================= */
+
+/* Google Fonts — must precede all other statements (CSS @import rule). */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@400;500&display=swap');
+
+/* ------------------------------------------------------------------
+   FONT AWESOME  (self-hosted, matching the blog exactly)
+   ------------------------------------------------------------------ */
+@font-face {
+  font-family: 'Font Awesome 6 Free';
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+  src: url('/fonts/fa-solid-900.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Font Awesome 6 Free';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/fa-regular-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Font Awesome 6 Brands';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/fa-brands-400.woff2') format('woff2');
+}
+
+/* Minimal FA utility classes needed by the site chrome */
+.fa, .fas, .fa-solid, .far, .fa-regular, .fab, .fa-brands {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  line-height: 1;
+  text-rendering: auto;
+}
+.fa-solid, .fas { font-family: 'Font Awesome 6 Free'; font-weight: 900; }
+.fa-regular, .far { font-family: 'Font Awesome 6 Free'; font-weight: 400; }
+.fa-brands, .fab { font-family: 'Font Awesome 6 Brands'; font-weight: 400; }
+.fa-fw { text-align: center; width: 1.25em; }
+
+.fa-bars::before      { content: "\f0c9"; }
+.fa-sun::before       { content: "\f185"; }
+.fa-moon::before      { content: "\f186"; }
+.fa-adjust::before    { content: "\f042"; }
+.fa-calendar::before  { content: "\f073"; }
+.fa-clock::before     { content: "\f017"; }
+.fa-tag::before       { content: "\f02b"; }
+.fa-github::before    { content: "\f09b"; }
+.fa-rss::before       { content: "\f09e"; }
+.fa-link::before      { content: "\f0c1"; }
+.fa-external-link-alt::before { content: "\f35d"; }
+
+/* ------------------------------------------------------------------
+   MONOSPACE  (JetBrains Mono from Google Fonts — the one addition
+   beyond the blog's system font. Used for code, meta, and sandbox
+   labels. Replaces the blog's bare monospace fallback. The @import
+   itself lives at the very top of this file — CSS requires @import to
+   precede all other statements.)
+   ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------
+   TYPE FAMILIES
+   body  — system sans, identical to the blog
+   mono  — JetBrains Mono for code & metadata
+   CJK   — Noto Serif SC / Noto Sans SC overlay
+   ------------------------------------------------------------------ */
+:root {
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --font-cjk-sans: 'Noto Sans SC', var(--font-body);
+  --font-cjk-serif: 'Noto Serif SC', Georgia, serif;
+}
+
+/* ------------------------------------------------------------------
+   TYPE SCALE
+   Base 16px. Matches the blog's default browser sizing.
+   ------------------------------------------------------------------ */
+:root {
+  --fs-xs:    0.75rem;   /* 12px  labels, eyebrows  */
+  --fs-sm:    0.875rem;  /* 14px  captions, meta     */
+  --fs-base:  1rem;      /* 16px  nav, body          */
+  --fs-md:    1.125rem;  /* 18px  comfortable reading*/
+  --fs-lg:    1.375rem;  /* 22px  h3                 */
+  --fs-xl:    1.75rem;   /* 28px  h2                 */
+  --fs-2xl:   2.25rem;   /* 36px  h1                 */
+  --fs-3xl:   2.875rem;  /* 46px  page title         */
+
+  --lh-tight:  1.2;
+  --lh-snug:   1.4;
+  --lh-normal: 1.6;
+  --lh-relaxed:1.75;
+  --lh-cjk:    1.9;     /* CJK body needs more leading */
+  --measure:   65ch;    /* prose max-width */
+}
+
+/* ------------------------------------------------------------------
+   COLOR TOKENS
+   Light mode — grounded in the blog's defaults.
+   ------------------------------------------------------------------ */
+:root,
+[data-theme='light'] {
+  --bg:           #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-code:      #f0f0f0;
+
+  --fg:           #333333;   /* body text — same as Coder */
+  --fg-2:         #555555;   /* secondary text */
+  --fg-3:         #888888;   /* muted — dates, meta */
+
+  --border:       #e5e5e5;
+  --border-strong:#cccccc;
+
+  /* Blue accent — matching the blog's dark-mode link color
+     but slightly deeper for light-mode contrast */
+  --accent:       #1a6fcf;
+  --accent-hover: #1358a8;
+  --accent-soft:  #e8f0fb;
+
+  --tag-bg:       #eeeeee;
+  --tag-fg:       #444444;
+
+  color-scheme: light;
+}
+
+/* ------------------------------------------------------------------
+   COLOR TOKENS  — Dark mode
+   Exact match to the blog: bg #212121, text #dadada, link #42a5f5
+   ------------------------------------------------------------------ */
+[data-theme='dark'] {
+  --bg:           #212121;
+  --bg-secondary: #2a2a2a;
+  --bg-code:      #2d2d2d;
+
+  --fg:           #dadada;
+  --fg-2:         #bbbbbb;
+  --fg-3:         #888888;
+
+  --border:       #424242;
+  --border-strong:#555555;
+
+  --accent:       #42a5f5;   /* exact blog dark-mode link color */
+  --accent-hover: #64b5f6;
+  --accent-soft:  #1a2a3d;
+
+  --tag-bg:       #424242;
+  --tag-fg:       #dadada;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #212121; --bg-secondary: #2a2a2a; --bg-code: #2d2d2d;
+    --fg: #dadada; --fg-2: #bbbbbb; --fg-3: #888888;
+    --border: #424242; --border-strong: #555555;
+    --accent: #42a5f5; --accent-hover: #64b5f6; --accent-soft: #1a2a3d;
+    --tag-bg: #424242; --tag-fg: #dadada;
+    color-scheme: dark;
+  }
+}
+
+/* ------------------------------------------------------------------
+   SEMANTIC TYPE CLASSES
+   ------------------------------------------------------------------ */
+.t-h1    { font-size: var(--fs-2xl); font-weight: 700; line-height: var(--lh-tight); color: var(--fg); }
+.t-h2    { font-size: var(--fs-xl);  font-weight: 600; line-height: var(--lh-snug);  color: var(--fg); }
+.t-h3    { font-size: var(--fs-lg);  font-weight: 600; line-height: var(--lh-snug);  color: var(--fg); }
+.t-body  { font-size: var(--fs-md);  line-height: var(--lh-relaxed); color: var(--fg-2); max-width: var(--measure); }
+.t-small { font-size: var(--fs-sm);  line-height: var(--lh-normal);  color: var(--fg-3); }
+.t-meta  {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
+  color: var(--fg-3);
+}
+.t-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+/* Links — matching blog behavior: colored, underline on hover */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  word-wrap: break-word;
+}
+a:hover, a:focus { text-decoration: underline; color: var(--accent-hover); }
+
+/* Inline code — matching blog */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--bg-code);
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+  color: var(--fg);
+}
+
+/* CJK adjustments */
+:lang(zh) { line-height: var(--lh-cjk); }
