@@ -29,8 +29,8 @@ const boardLanePos = (row, lane) => [
 ];
 const rowCenter = (row) => [SM_X[1], BOARD_Y, SM_Z[1] - 1.4 + row * 0.4];
 
-/* ---------- themes ---------- */
-const THEMES = {
+/* ---------- themes (exported so the legend can show matching swatches) ---------- */
+export const THEMES = {
   light: {
     bg: '#fafafa', die: '#d8d8d8', sm: '#ececec', smActive: '#c5d9f2',
     l2: '#e2c893', hbmDim: '#e6d9bd', hbm: '#d0a656',
@@ -65,7 +65,7 @@ const lerp3 = (a, b, u) => [
   a[2] + (b[2] - a[2]) * u,
 ];
 
-function makeLabelSprite(text, colorHex) {
+function makeLabelSprite(text, colorHex, scale = 1) {
   const cv = document.createElement('canvas');
   cv.width = 256; cv.height = 96;
   const ctx = cv.getContext('2d');
@@ -81,7 +81,7 @@ function makeLabelSprite(text, colorHex) {
   const tex = new THREE.CanvasTexture(cv);
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(5.6, 2.1, 1);
+  sprite.scale.set(5.6 * scale, 2.1 * scale, 1);
   sprite.userData.redraw = (color) => { draw(color); tex.needsUpdate = true; };
   return sprite;
 }
@@ -238,12 +238,15 @@ export function createScene(canvas) {
   cloud.visible = false;
   scene.add(cloud);
 
-  /* labels */
+  /* labels — persistent anatomy labels plus contextual ones that appear
+     with the thing they name (win = the window [t0, t1] they're shown in) */
   const labels = [
     { sprite: makeLabelSprite('HBM', theme.label), pos: [-21, 6.6, -6] },
     { sprite: makeLabelSprite('HBM', theme.label), pos: [21, 6.6, 6] },
-    { sprite: makeLabelSprite('L2', theme.label), pos: [0, 3.6, 0] },
+    { sprite: makeLabelSprite('L2', theme.label), pos: [0, 3.8, 0] },
     { sprite: makeLabelSprite('SM', theme.label), pos: [13.75, 4.4, 9] },
+    { sprite: makeLabelSprite('blocks', theme.label), pos: [0, 16.4, -7.7], win: [18.8, 30] },
+    { sprite: makeLabelSprite('warps', theme.label, 0.45), pos: [SM_X[1], 6.1, SM_Z[1] - 2.7], win: [33.2, 65.5] },
   ];
   labels.forEach((l) => { l.sprite.position.set(...l.pos); scene.add(l.sprite); });
 
@@ -312,10 +315,17 @@ export function createScene(canvas) {
     const { yaw = 0, pitch = 0, coalesced = true, selBlock = 31, selTid = 140 } = opts;
     cameraAt(t, yaw, pitch);
 
-    /* labels visible in ch0 + ch6 */
+    /* labels: anatomy labels stay on the whole film; contextual ones
+       fade in/out with their window */
     labels.forEach((l) => {
-      l.sprite.material.opacity = t < 8 ? 1 - smooth(6.5, 8, t) : t >= 68 ? smooth(68, 70, t) : 0;
-      l.sprite.visible = l.sprite.material.opacity > 0.01;
+      let op;
+      if (l.win) {
+        op = smooth(l.win[0], l.win[0] + 0.8, t) * (1 - smooth(l.win[1], l.win[1] + 0.8, t));
+      } else {
+        op = 0.95;
+      }
+      l.sprite.material.opacity = op;
+      l.sprite.visible = op > 0.01;
     });
 
     /* HBM fill (ch1) + pulse when the ch4 request arrives */

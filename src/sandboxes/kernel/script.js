@@ -186,6 +186,14 @@ export const UI_STR = {
     laneNote: (b, tid) =>
       `i = blockIdx.x(${b}) × 256 + threadIdx.x(${tid}) = ${b * 256 + tid} · warp = ${tid} ⁄ 32 = ${Math.floor(tid / 32)}`,
     dragHint: 'drag to look · click glowing objects',
+    legend: [
+      ['sm', 'SM (compute unit)'],
+      ['hbm', 'HBM — off-chip VRAM'],
+      ['l2', 'L2 cache'],
+      ['block', 'thread block'],
+      ['warpActive', 'issuing warp / active'],
+      ['particle', 'data & memory traffic'],
+    ],
     webglFail: 'WebGL is unavailable in this browser — the 3D tour cannot run.',
     webglFallback: 'Read the 2D deep-dive instead →',
   },
@@ -199,6 +207,14 @@ export const UI_STR = {
     laneNote: (b, tid) =>
       `i = blockIdx.x(${b}) × 256 + threadIdx.x(${tid}) = ${b * 256 + tid} · warp = ${tid} ⁄ 32 = ${Math.floor(tid / 32)}`,
     dragHint: '拖拽环视 · 点击发光物体',
+    legend: [
+      ['sm', 'SM（计算单元）'],
+      ['hbm', 'HBM · 片外显存'],
+      ['l2', 'L2 缓存'],
+      ['block', '线程块 block'],
+      ['warpActive', '正在发射的 warp / 活跃'],
+      ['particle', '数据 / 内存流量'],
+    ],
     webglFail: '当前浏览器无法使用 WebGL，3D 导览无法运行。',
     webglFallback: '改读 2D 精读版 →',
   },

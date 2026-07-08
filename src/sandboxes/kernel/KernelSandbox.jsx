@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createScene } from './scene.js';
+import { createScene, THEMES } from './scene.js';
 import {
   TOTAL, CHAPTERS, chapterAt, CODE_SEGMENTS, UI_STR,
   FOCUS_BLOCK, FOCUS_TID, blockSchedule,
@@ -287,6 +287,26 @@ export default function KernelSandbox({ lang = 'en', theme = 'light' }) {
             </span>
           </div>
         )}
+      </div>
+
+      {/* color legend — swatches match the active scene theme */}
+      <div style={{
+        position: 'absolute', right: 14, bottom: 104,
+        background: 'var(--bg)', border: '1px solid var(--border)',
+        borderRadius: 5, padding: '9px 12px',
+        fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.9,
+        color: 'var(--fg-2)',
+      }}>
+        {s.legend.map(([key, label]) => (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+            <span style={{
+              width: 11, height: 11, borderRadius: 2, flex: 'none',
+              background: (THEMES[theme] || THEMES.light)[key],
+              border: '1px solid var(--border)',
+            }} />
+            {label}
+          </div>
+        ))}
       </div>
 
       {/* pick tooltip */}
