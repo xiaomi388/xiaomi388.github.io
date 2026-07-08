@@ -2,31 +2,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GpuSandbox from '../sandboxes/gpu/GpuSandbox.jsx';
 
-// Full-screen immersive sandbox view. The chrome here is a dark app bar;
-// the interior is the sandbox's own world and deliberately does not inherit
-// the site's light/dark theme.
-export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
+// Full-screen sandbox view. The chrome is a minimal blog-style app bar;
+// everything reads the site's design tokens, so the page follows the
+// light/dark toggle like the rest of the site.
+export default function SandboxPage({ sandbox, sandboxes, lang, t, theme, setTheme }) {
   const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
   const isGpu = sandbox.id === 'gpu-architecture';
 
-  const go = (path) => navigate(path);
   const openSandbox = (s) => {
     setShowInfo(false);
     navigate(`/${lang}/s/${s.id}`);
-  };
-
-  const D = {
-    bg: '#0d1117',
-    bgBar: '#161b22',
-    bgPanel: '#161b22',
-    border: '#30363d',
-    borderSoft: '#21262d',
-    fg: '#c9d1d9',
-    fg2: '#8b949e',
-    fg3: '#484f58',
-    accent: '#58a6ff',
-    tag: { bg: '#21262d', fg: '#8b949e' },
   };
 
   const idx = sandboxes.findIndex((s) => s.id === sandbox.id);
@@ -40,58 +26,65 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: D.bg,
-        color: D.fg,
-        // Dark UI keeps grayscale antialiasing (the light chrome uses the
-        // platform default to match the blog's text rendering).
-        WebkitFontSmoothing: 'antialiased',
+        background: 'var(--bg)',
+        color: 'var(--fg)',
       }}
     >
+      {/* Blog-style floating theme toggle, same as the chrome pages */}
+      <div className="float-container">
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          title="Toggle theme"
+          aria-label="Toggle theme"
+        >
+          <i className="fas fa-adjust fa-fw" aria-hidden="true"></i>
+        </button>
+      </div>
+
       {/* App bar */}
       <header
         style={{
-          height: '44px',
+          height: '52px',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
           padding: '0 16px',
           gap: 0,
-          borderBottom: `1px solid ${D.border}`,
-          background: D.bgBar,
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--bg)',
           zIndex: 10,
         }}
       >
         <a
-          href={`/${lang}`}
+          href={`/${lang}/sandboxes`}
           onClick={(e) => {
             e.preventDefault();
-            go(`/${lang}`);
+            navigate(`/${lang}/sandboxes`);
           }}
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '12px',
-            color: D.fg2,
+            fontSize: '16px',
+            color: 'var(--accent)',
             textDecoration: 'none',
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
             whiteSpace: 'nowrap',
             paddingRight: '16px',
-            borderRight: `1px solid ${D.border}`,
+            borderRight: '1px solid var(--border)',
             marginRight: '16px',
           }}
         >
-          ← {lang === 'en' ? 'Notes' : '目录'}
+          ← {t.nav.sandboxes}
         </a>
 
         <span
           style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            color: D.fg3,
+            fontSize: '12px',
+            color: 'var(--fg-3)',
             paddingRight: '12px',
             marginRight: '12px',
-            borderRight: `1px solid ${D.border}`,
+            borderRight: '1px solid var(--border)',
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
             whiteSpace: 'nowrap',
@@ -103,8 +96,8 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
         <span
           style={{
             fontWeight: 600,
-            fontSize: '14px',
-            color: D.fg,
+            fontSize: '16px',
+            color: 'var(--heading)',
             flex: 1,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -120,12 +113,12 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
             <span
               key={tag}
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '11px',
-                padding: '0.15em 0.5em',
-                borderRadius: '3px',
-                background: D.tag.bg,
-                color: D.tag.fg,
+                fontSize: '13px',
+                padding: '3px 6px',
+                borderRadius: '6px',
+                background: 'var(--tag-bg)',
+                color: 'var(--tag-fg)',
+                lineHeight: 1.5,
               }}
             >
               {tag}
@@ -151,23 +144,16 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
               border: 'none',
               borderRadius: '4px',
               background: 'transparent',
-              color: D.fg3,
+              color: 'var(--accent)',
               cursor: 'pointer',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '12px',
+              fontSize: '15px',
               whiteSpace: 'nowrap',
               display: 'flex',
               alignItems: 'center',
-              transition: 'background 150ms, color 150ms',
+              fontFamily: 'inherit',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = D.fg;
-              e.currentTarget.style.background = D.borderSoft;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = D.fg3;
-              e.currentTarget.style.background = 'transparent';
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
           >
             {t.lang}
           </button>
@@ -177,12 +163,12 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
             style={{
               width: '32px',
               height: '32px',
-              border: 'none',
+              border: '1px solid ' + (showInfo ? 'var(--accent)' : 'transparent'),
               borderRadius: '4px',
-              background: showInfo ? D.borderSoft : 'transparent',
-              color: showInfo ? D.fg : D.fg3,
+              background: showInfo ? 'var(--accent-soft)' : 'transparent',
+              color: showInfo ? 'var(--accent)' : 'var(--fg-3)',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '15px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -204,10 +190,10 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
               style={{
                 width: '100%',
                 height: '100%',
-                background: D.bg,
-                color: D.fg3,
+                background: 'var(--bg)',
+                color: 'var(--fg-3)',
                 fontFamily: 'var(--font-mono)',
-                fontSize: '13px',
+                fontSize: '14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -217,9 +203,9 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
             >
               <div
                 style={{
-                  color: D.accent,
+                  color: 'var(--accent)',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '12px',
+                  fontSize: '13px',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                 }}
@@ -227,12 +213,12 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
                 {sandbox.cat}
               </div>
               <div
-                style={{ color: D.fg2, fontSize: '15px', fontWeight: 600 }}
+                style={{ color: 'var(--heading)', fontSize: '17px', fontWeight: 600 }}
                 lang={lang === 'zh' ? 'zh' : undefined}
               >
                 {sandbox[lang].title}
               </div>
-              <div style={{ marginTop: '8px', color: D.fg3 }}>
+              <div style={{ marginTop: '8px', color: 'var(--fg-3)' }}>
                 {lang === 'en' ? 'Interactive sandbox coming soon' : '可交互沙盒即将推出'}
               </div>
             </div>
@@ -249,8 +235,8 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
               bottom: 0,
               width: '340px',
               maxWidth: '90vw',
-              background: D.bgPanel,
-              borderLeft: `1px solid ${D.border}`,
+              background: 'var(--bg)',
+              borderLeft: '1px solid var(--border)',
               padding: '24px 20px',
               overflowY: 'auto',
               zIndex: 5,
@@ -269,8 +255,8 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
               <span
                 style={{
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '11px',
-                  color: D.fg3,
+                  fontSize: '12px',
+                  color: 'var(--fg-3)',
                   letterSpacing: '0.06em',
                   textTransform: 'uppercase',
                 }}
@@ -282,7 +268,7 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
                 style={{
                   border: 'none',
                   background: 'none',
-                  color: D.fg3,
+                  color: 'var(--fg-3)',
                   cursor: 'pointer',
                   fontSize: '18px',
                   lineHeight: 1,
@@ -294,10 +280,10 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
 
             <h2
               style={{
-                fontSize: '18px',
+                fontSize: '20px',
                 fontWeight: 600,
                 lineHeight: 1.3,
-                color: D.fg,
+                color: 'var(--heading)',
                 margin: 0,
               }}
               lang={lang === 'zh' ? 'zh' : undefined}
@@ -306,19 +292,19 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
             </h2>
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: D.fg3 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--fg-3)' }}>
                 {sandbox.date}
               </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: D.fg3 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--fg-3)' }}>
                 ·
               </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: D.fg3 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--fg-3)' }}>
                 {sandbox.mins} {lang === 'en' ? 'min' : '分钟'}
               </span>
             </div>
 
             <p
-              style={{ fontSize: '14px', lineHeight: 1.75, color: D.fg2, margin: 0 }}
+              style={{ fontSize: '15px', lineHeight: 1.75, color: 'var(--fg-2)', margin: 0 }}
               lang={lang === 'zh' ? 'zh' : undefined}
             >
               {sandbox[lang].body}
@@ -329,12 +315,12 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
                 <span
                   key={tag}
                   style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    padding: '0.2em 0.55em',
-                    borderRadius: '3px',
-                    background: D.tag.bg,
-                    color: D.tag.fg,
+                    fontSize: '13px',
+                    padding: '3px 6px',
+                    borderRadius: '6px',
+                    background: 'var(--tag-bg)',
+                    color: 'var(--tag-fg)',
+                    lineHeight: 1.5,
                   }}
                 >
                   {tag}
@@ -346,7 +332,7 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
               style={{
                 marginTop: 'auto',
                 paddingTop: '16px',
-                borderTop: `1px solid ${D.borderSoft}`,
+                borderTop: '1px solid var(--border)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 gap: '12px',
@@ -360,7 +346,7 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
                       e.preventDefault();
                       openSandbox(prev);
                     }}
-                    style={{ fontSize: '13px', color: D.accent, textDecoration: 'none' }}
+                    style={{ fontSize: '14px', color: 'var(--accent)', textDecoration: 'none' }}
                   >
                     ← {prev[lang].title}
                   </a>
@@ -374,7 +360,7 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
                       e.preventDefault();
                       openSandbox(next);
                     }}
-                    style={{ fontSize: '13px', color: D.accent, textDecoration: 'none' }}
+                    style={{ fontSize: '14px', color: 'var(--accent)', textDecoration: 'none' }}
                   >
                     {next[lang].title} →
                   </a>

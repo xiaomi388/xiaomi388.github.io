@@ -58,7 +58,16 @@ function Page({ kind, theme, setTheme }) {
   if (kind === 'sandbox') {
     const sandbox = SANDBOXES.find((s) => s.id === id);
     if (!sandbox) return <Navigate to={`/${lang}/sandboxes`} replace />;
-    return <SandboxPage sandbox={sandbox} sandboxes={SANDBOXES} lang={lang} t={t} />;
+    return (
+      <SandboxPage
+        sandbox={sandbox}
+        sandboxes={SANDBOXES}
+        lang={lang}
+        t={t}
+        theme={theme}
+        setTheme={setTheme}
+      />
+    );
   }
 
   return (

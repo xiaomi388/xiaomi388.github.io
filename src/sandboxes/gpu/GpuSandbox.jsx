@@ -1,83 +1,97 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as d3 from 'd3';
 
-/* ---------- styles ---------- */
+/* ---------- styles ----------
+   The sandbox reads the site's design tokens (colors_and_type.css) so it
+   follows the blog palette and the light/dark toggle. Only the three
+   pedagogical families (compute / memory / execution) get their own hues,
+   kept at textbook-print saturation. */
 const GPU_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap');
-
 .gx * { box-sizing: border-box; }
 .gx {
-  --bg:#0a0d13; --bg2:#11161f; --bg3:#171f2b; --bg4:#1e2937;
-  --line:#26303f; --line2:#33415a;
-  --tx:#dde4ef; --txd:#8895a9; --txf:#586577;
-  --compute:#3fd9c4; --compute-d:#1d6f66;
-  --mem:#f2b24a; --mem-d:#7a5a22;
-  --exec:#8d9bff; --exec-d:#3d4585;
-  --danger:#f56b6b; --ok:#5fe3a1;
-  font-family:'IBM Plex Sans',sans-serif;
-  background:
-    radial-gradient(900px 500px at 88% -8%, rgba(63,217,196,.07), transparent 60%),
-    radial-gradient(700px 500px at 6% 108%, rgba(141,155,255,.07), transparent 60%),
-    var(--bg);
+  /* surfaces (site --bg is the page; panels/cells step away from it) */
+  --bg2:#ffffff; --bg3:#f1f1f1; --bg4:#e4e4e4;
+  --line:var(--border); --line2:var(--border-strong);
+  --tx:var(--fg); --txd:var(--fg-2); --txf:var(--fg-3);
+  /* pedagogical families */
+  --compute:var(--accent); --compute-d:#9fc0e8;
+  --mem:#b26a00; --mem-d:#e0c290;
+  --exec:#6a4fa3; --exec-d:#c9bce4;
+  --danger:#c62828; --ok:#2e7d32;
+  font-family:var(--font-body);
+  background:var(--bg);
   color:var(--tx);
   min-height:100%;
-  letter-spacing:.1px;
 }
-.gx-mono { font-family:'IBM Plex Mono',monospace; }
-.gx-disp { font-family:'Chakra Petch',sans-serif; }
-.gx-wrap { max-width:1080px; margin:0 auto; padding:26px 22px 56px; }
-.gx-head { display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:18px; }
-.gx-title { font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:25px; letter-spacing:.4px; line-height:1.1; }
-.gx-title b { color:var(--compute); }
-.gx-sub { color:var(--txd); font-size:12.5px; margin-top:5px; }
-.gx-pill { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--txf); border:1px solid var(--line); border-radius:999px; padding:5px 11px; }
-.gx-tabs { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:18px; }
-.gx-tab { font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; background:var(--bg2); color:var(--txd); border:1px solid var(--line); border-radius:9px; padding:9px 15px; cursor:pointer; transition:.16s; display:flex; align-items:center; gap:8px; }
+[data-theme='dark'] .gx {
+  --bg2:#262626; --bg3:#2e2e2e; --bg4:#3a3a3a;
+  --compute-d:#2f4a68;
+  --mem:#d99a3d; --mem-d:#6e5426;
+  --exec:#a48ad4; --exec-d:#4a3d6e;
+  --danger:#ef7070; --ok:#81c784;
+}
+.gx-mono { font-family:var(--font-mono); }
+.gx-wrap { max-width:1080px; margin:0 auto; padding:32px 22px 64px; }
+.gx-head { display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:20px; }
+.gx-title { font-weight:600; font-size:28px; line-height:1.15; color:var(--heading); }
+.gx-title b { color:var(--accent); font-weight:600; }
+.gx-sub { color:var(--txd); font-size:15px; margin-top:6px; }
+.gx-pill { font-family:var(--font-mono); font-size:12px; color:var(--tag-fg); background:var(--tag-bg); border-radius:6px; padding:4px 9px; }
+.gx-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.gx-tab { font-family:var(--font-body); font-weight:600; font-size:15px; background:var(--bg2); color:var(--txd); border:1px solid var(--line); border-radius:6px; padding:8px 15px; cursor:pointer; transition:.15s; display:flex; align-items:center; gap:8px; }
 .gx-tab:hover { color:var(--tx); border-color:var(--line2); }
-.gx-tab.on { color:var(--bg); border-color:transparent; }
-.gx-tab .dot { width:7px; height:7px; border-radius:2px; }
-.gx-panel { background:var(--bg2); border:1px solid var(--line); border-radius:13px; }
-.gx-fade { animation:gxFade .4s ease both; }
-@keyframes gxFade { from{opacity:0;transform:translateY(9px);} to{opacity:1;transform:none;} }
-.gx-h { font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; color:var(--txd); text-transform:uppercase; letter-spacing:1.4px; }
-.gx-crumbs { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:14px; }
-.gx-crumb { font-family:'IBM Plex Mono',monospace; font-size:11.5px; cursor:pointer; background:var(--bg3); border:1px solid var(--line); color:var(--txd); padding:5px 10px; border-radius:7px; transition:.14s; }
-.gx-crumb:hover { color:var(--tx); border-color:var(--line2); }
-.gx-crumb.cur { color:var(--tx); border-color:var(--compute-d); cursor:default; }
-.gx-csep { color:var(--txf); font-size:11px; }
-.gx-cell { border:1px solid var(--line); border-radius:6px; background:var(--bg3); cursor:pointer; transition:.14s; position:relative; }
-.gx-cell:hover { border-color:var(--line2); transform:translateY(-1px); }
-.gx-stage { background:var(--bg); border:1px solid var(--line); border-radius:11px; padding:18px; }
-.gx-info { background:var(--bg3); border:1px solid var(--line); border-left:3px solid var(--compute); border-radius:9px; padding:13px 15px; font-size:13px; line-height:1.62; color:#c4cdda; }
+.gx-tab.on { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+.gx-tab .dot { width:8px; height:8px; border-radius:2px; }
+.gx-panel { background:var(--bg2); border:1px solid var(--line); border-radius:6px; }
+.gx-fade { animation:gxFade .35s ease both; }
+@keyframes gxFade { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
+.gx-h { font-weight:600; font-size:13px; color:var(--txd); text-transform:uppercase; letter-spacing:1.2px; }
+.gx-cell { border:1px solid var(--line); border-radius:5px; background:var(--bg3); cursor:pointer; transition:.14s; position:relative; }
+.gx-cell:hover { border-color:var(--accent); }
+.gx-stage { background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:18px; }
+.gx-info { background:var(--bg3); border:1px solid var(--line); border-left:3px solid var(--compute); border-radius:5px; padding:14px 16px; font-size:16px; line-height:1.7; color:var(--txd); }
 .gx-info b { color:var(--tx); font-weight:600; }
-.gx-info .k { font-family:'IBM Plex Mono',monospace; color:var(--compute); }
-.gx-btn { font-family:'IBM Plex Mono',monospace; font-size:12px; cursor:pointer; background:var(--bg3); color:var(--tx); border:1px solid var(--line2); border-radius:8px; padding:8px 13px; transition:.14s; }
-.gx-btn:hover:not(:disabled) { border-color:var(--compute-d); color:var(--compute); }
-.gx-btn:disabled { opacity:.34; cursor:not-allowed; }
-.gx-btn.primary { background:var(--compute); color:#062a26; border-color:transparent; font-weight:600; }
-.gx-btn.primary:hover { filter:brightness(1.08); color:#062a26; }
-.gx-seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
-.gx-seg button { font-family:'IBM Plex Mono',monospace; font-size:11.5px; background:var(--bg3); color:var(--txd); border:0; padding:7px 12px; cursor:pointer; transition:.14s; }
+.gx-info .k { font-family:var(--font-mono); color:var(--accent); font-size:15px; }
+.gx-btn { font-family:var(--font-mono); font-size:13px; cursor:pointer; background:var(--bg2); color:var(--tx); border:1px solid var(--line2); border-radius:5px; padding:8px 13px; transition:.14s; }
+.gx-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+.gx-btn:disabled { opacity:.4; cursor:not-allowed; }
+.gx-btn.primary { background:var(--accent); color:#fff; border-color:transparent; font-weight:600; }
+.gx-btn.primary:hover { filter:brightness(1.08); color:#fff; }
+.gx-seg { display:inline-flex; border:1px solid var(--line); border-radius:5px; overflow:hidden; }
+.gx-seg button { font-family:var(--font-mono); font-size:12.5px; background:var(--bg2); color:var(--txd); border:0; padding:7px 12px; cursor:pointer; transition:.14s; }
 .gx-seg button:hover { color:var(--tx); }
-.gx-seg button.on { background:var(--bg4); color:var(--compute); }
+.gx-seg button.on { background:var(--accent-soft); color:var(--accent); }
 .gx-seg button + button { border-left:1px solid var(--line); }
-@keyframes gxPulse { 0%,100%{box-shadow:0 0 0 0 rgba(63,217,196,.0);} 50%{box-shadow:0 0 16px 1px rgba(63,217,196,.4);} }
-.gx-live { animation:gxPulse 1.5s ease-in-out infinite; }
-.gx-masked { background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 5px, transparent 5px 10px); }
+.gx-live { border-color:var(--accent) !important; background:var(--accent-soft) !important; }
+.gx-masked { background-image:repeating-linear-gradient(45deg, rgba(127,127,127,.10) 0 5px, transparent 5px 10px); }
 @keyframes gxBlink { 0%,100%{opacity:.35;} 50%{opacity:1;} }
 .gx-blink { animation:gxBlink 1s ease-in-out infinite; }
-.gx-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--txd); font-family:'IBM Plex Mono',monospace; }
-.gx-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; vertical-align:-1px; margin-right:5px; }
+.gx-legend { display:flex; gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--txd); font-family:var(--font-mono); }
+.gx-legend i { display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
 .gx-grid { display:grid; gap:6px; }
-.gx-tier { display:flex; align-items:stretch; gap:0; border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; transition:.16s; background:var(--bg3); }
+.gx-tier { display:flex; align-items:stretch; gap:0; border:1px solid var(--line); border-radius:6px; overflow:hidden; cursor:pointer; transition:.16s; background:var(--bg2); }
 .gx-tier:hover { border-color:var(--line2); }
 .gx-tier.sel { border-color:var(--mem); }
 .gx-tier .swatch { width:6px; flex:none; }
-a.gx-link, a.gx-link:visited { color:var(--compute); }
-.gx-kv { display:flex; justify-content:space-between; gap:12px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--line); }
+a.gx-link, a.gx-link:visited { color:var(--accent); }
+.gx-kv { display:flex; justify-content:space-between; gap:12px; font-size:13.5px; padding:4px 0; border-bottom:1px dashed var(--line); }
 .gx-kv:last-child { border-bottom:0; }
 .gx-kv .k { color:var(--txd); }
-.gx-kv .v { font-family:'IBM Plex Mono',monospace; color:var(--tx); }
+.gx-kv .v { font-family:var(--font-mono); color:var(--tx); font-size:12.5px; }
+/* hierarchy map (Die Explorer) */
+.gx-map { display:flex; align-items:stretch; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.gx-map .seg { border:1px solid var(--line); border-radius:5px; padding:6px 11px; background:var(--bg2); text-align:left; transition:.14s; }
+.gx-map .seg .lv { font-family:var(--font-mono); font-size:12.5px; color:var(--txd); display:block; }
+.gx-map .seg .ct { font-size:11px; color:var(--txf); display:block; margin-top:1px; }
+.gx-map .seg.visited { cursor:pointer; }
+.gx-map .seg.visited:hover { border-color:var(--accent); }
+.gx-map .seg.visited .lv { color:var(--tx); }
+.gx-map .seg.cur { border-color:var(--accent); background:var(--accent-soft); cursor:default; }
+.gx-map .seg.cur .lv { color:var(--accent); }
+.gx-map .seg.future { opacity:.55; cursor:default; }
+.gx-map .sep { align-self:center; color:var(--txf); font-size:12px; }
+/* divergence slider */
+.gx-slider { accent-color:var(--accent); width:200px; }
 `;
 
 /* ---------- bilingual string tables ---------- */
@@ -93,6 +107,12 @@ const STR = {
     legendSm: "SM (click to drill in)",
     legendMem: "VRAM / Cache (click to inspect)",
     legendNote: "Real GPUs typically have 80–140 SMs; simplified to 24 here",
+    // kernel launch
+    launchBtn: "▶ Launch kernel · 96 blocks",
+    kQueued: "queued",
+    kResident: "resident",
+    kDone: "done",
+    launchDone: "All 96 blocks retired. The scheduler streams blocks onto whichever SM has a free slot — this is how a GPU load-balances automatically.",
     // SmView
     residentBlocks: "Resident Blocks",
     blockSubline: (warps) => `256 threads · ${warps} warps · click to drill in →`,
@@ -117,8 +137,10 @@ const STR = {
     threadAluLabel: "Execution Unit — ALU lane",
     threadAluDesc: "This thread's arithmetic is handled by its corresponding ALU lane within the Warp.",
     threadSpillTip: "Tip: keeping private data in registers is fastest. If register pressure is too high, the compiler spills to local memory — named 'local' but physically in slow VRAM, a common performance trap.",
-    // DieExplorer crumb back button
+    // DieExplorer map + back button
     backToLevel: "← Back to level info",
+    mapCounts: { gpu: "×1", sm: "×24", block: "3 resident / SM", warp: "×8 / block", thread: "×32 / warp" },
+    mapNames: { gpu: "GPU die", sm: "SM", block: "Block", warp: "Warp", thread: "Thread" },
     // SmView internal labels
     smInternalHeading: (i) => `SM ${pad(i)} · Internal Structure`,
     // MemoryPyramid
@@ -133,18 +155,19 @@ const STR = {
     hitResult: (name) => `Hit ${name}`,
     latResult: (lat) => <>Latency ≈ <b style={{color:"var(--mem)"}}>{lat} cycles</b></>,
     latRelative: (lat) => <> · <b style={{color:"var(--danger)"}}>{lat}× </b>slower than registers</>,
+    cyclesElapsed: "cycles elapsed",
     kvScope: "Scope",
     kvCapacity: "Capacity",
     kvLatency: "Latency",
     kvBandwidth: "Bandwidth",
     // WarpSimt
-    execModeLabel: "Execution Mode",
-    modeUniform: "No Divergence (uniform)",
-    modeDivergent: "Branch Divergence (divergent)",
-    modeCompareHint: "Switch modes to compare total cycle count and warp utilization",
+    sliderLabel: "Threads taking the IF branch",
+    presetUniform: "no divergence",
+    presetHalf: "half / half",
+    predicted: (c, u) => <>→ this program will take <b>{c} cycles</b> at <b>{u}%</b> average utilization</>,
     warpLaneHeading: "1 WARP · 32 LANES",
-    ifGroupLabel: "IF group (tid ≤ 15)",
-    elseGroupLabel: "ELSE group (tid > 15)",
+    ifGroupLabel: (n) => `IF group (tid < ${n})`,
+    elseGroupLabel: (n) => `ELSE group (tid ≥ ${n})`,
     statCycles: "Cycles Done",
     statActiveLanes: "Active Lanes",
     statAvgUtil: "Avg Utilization",
@@ -180,6 +203,11 @@ const STR = {
     legendSm: "SM(可点击钻取)",
     legendMem: "显存 / 缓存(可点击查看)",
     legendNote: "真实 GPU 通常有 80–140 个 SM，此处简化为 24",
+    launchBtn: "▶ 发射 kernel · 96 blocks",
+    kQueued: "排队",
+    kResident: "驻留",
+    kDone: "完成",
+    launchDone: "96 个 Block 全部执行完毕。调度器把 Block 源源不断喂给有空位的 SM——GPU 就是这样自动负载均衡的。",
     residentBlocks: "驻留 BLOCK",
     blockSubline: (warps) => `256 线程 · ${warps} warps · 点击钻取 →`,
     smOccupancyNote: "Block 是软件概念，被硬件分配到某个 SM 执行。一个 SM 能驻留几个 Block，取决于寄存器与共享内存的用量(occupancy)。",
@@ -199,6 +227,8 @@ const STR = {
     threadAluDesc: "本线程的算术运算由 Warp 内对应的一条 ALU lane 执行。",
     threadSpillTip: "提示:线程私有数据放寄存器最快；寄存器不够会『溢出』到 local memory——名字叫 local，实际位于慢速显存，是常见性能陷阱。",
     backToLevel: "← 返回层级说明",
+    mapCounts: { gpu: "×1", sm: "×24", block: "每 SM 驻留 3", warp: "×8 / block", thread: "×32 / warp" },
+    mapNames: { gpu: "GPU 芯片", sm: "SM", block: "Block", warp: "Warp", thread: "Thread" },
     smInternalHeading: (i) => `SM ${pad(i)} · 内部结构`,
     memPyramidHeading: "内存层级 · 越往下越大越慢",
     chipOnChip: "● 片上",
@@ -211,17 +241,18 @@ const STR = {
     hitResult: (name) => `命中 ${name}`,
     latResult: (lat) => <>延迟 ≈ <b style={{color:"var(--mem)"}}>{lat} 周期</b></>,
     latRelative: (lat) => <> · 相当于寄存器的 <b style={{color:"var(--danger)"}}>{lat}×</b></>,
+    cyclesElapsed: "已耗周期",
     kvScope: "作用域",
     kvCapacity: "容量",
     kvLatency: "延迟",
     kvBandwidth: "带宽",
-    execModeLabel: "执行模式",
-    modeUniform: "无分歧 (uniform)",
-    modeDivergent: "有分支分歧 (divergent)",
-    modeCompareHint: "切换后对比总周期数与 warp 利用率",
+    sliderLabel: "走 IF 分支的线程数",
+    presetUniform: "无分歧",
+    presetHalf: "对半分",
+    predicted: (c, u) => <>→ 这段程序将耗时 <b>{c} 周期</b>，平均利用率 <b>{u}%</b></>,
     warpLaneHeading: "1 个 WARP · 32 LANE",
-    ifGroupLabel: "IF 组 (tid ≤ 15)",
-    elseGroupLabel: "ELSE 组 (tid > 15)",
+    ifGroupLabel: (n) => `IF 组 (tid < ${n})`,
+    elseGroupLabel: (n) => `ELSE 组 (tid ≥ ${n})`,
     statCycles: "已执行周期",
     statActiveLanes: "当前活跃 lane",
     statAvgUtil: "平均利用率",
@@ -359,19 +390,20 @@ function notStartedHint(lang, divergent) {
 }
 
 /* finished summary messages */
-function finishedMsg(lang, divergent, cyclesDone, avgUtil) {
+function finishedMsg(lang, splitAt, cyclesDone, avgUtil) {
+  const divergent = splitAt > 0 && splitAt < 32;
   if (lang === 'en') {
     if (divergent) {
       return (
         <React.Fragment>
-          <b style={{color:"var(--danger)"}}>The cost of branch divergence:</b> within a single Warp, the IF and ELSE paths cannot execute in parallel — the hardware must run them <b>serially</b>, with the other half of the lanes sitting idle. This run took {cyclesDone} cycles with an average utilization of only <b>{(avgUtil * 100).toFixed(1)}%</b>.<br />
-          Optimization: arrange data so all 32 threads in a Warp take the <b>same branch</b> (e.g. sort by key, remap tid assignments).
+          <b style={{color:"var(--danger)"}}>The cost of branch divergence:</b> within a single Warp, the IF group ({splitAt} lanes) and the ELSE group ({32 - splitAt} lanes) cannot execute in parallel — the hardware must run them <b>serially</b>, with the other group's lanes sitting idle. This run took {cyclesDone} cycles with an average utilization of only <b>{(avgUtil * 100).toFixed(1)}%</b>.<br />
+          Optimization: arrange data so all 32 threads in a Warp take the <b>same branch</b> (e.g. sort by key, remap tid assignments). Drag the slider and replay to see how the cost varies.
         </React.Fragment>
       );
     }
     return (
       <React.Fragment>
-        <b style={{color:"var(--ok)"}}>No divergence:</b> all 32 lanes execute the same instruction throughout, achieving <b>100%</b> utilization over {cyclesDone} cycles — SIMT at peak efficiency. Switch to "Branch Divergence" to compare.
+        <b style={{color:"var(--ok)"}}>No divergence:</b> all 32 lanes execute the same instruction throughout, achieving <b>100%</b> utilization over {cyclesDone} cycles — SIMT at peak efficiency. Drag the slider away from the ends to see divergence appear.
       </React.Fragment>
     );
   }
@@ -379,14 +411,14 @@ function finishedMsg(lang, divergent, cyclesDone, avgUtil) {
   if (divergent) {
     return (
       <React.Fragment>
-        <b style={{color:"var(--danger)"}}>分支分歧的代价：</b>同一个 Warp 内，IF 与 ELSE 两条路径无法并行——硬件只能<b>先后串行</b>执行，另一半 lane 在旁空等。本次共 {cyclesDone} 周期，平均利用率仅 <b>{(avgUtil * 100).toFixed(1)}%</b>。<br />
-        优化方向：让同一 Warp 内的 32 个线程尽量走<b>相同分支</b>（如按数据排序、调整 tid 映射）。
+        <b style={{color:"var(--danger)"}}>分支分歧的代价：</b>同一个 Warp 内，IF 组（{splitAt} 条 lane）与 ELSE 组（{32 - splitAt} 条 lane）无法并行——硬件只能<b>先后串行</b>执行，另一组 lane 在旁空等。本次共 {cyclesDone} 周期，平均利用率仅 <b>{(avgUtil * 100).toFixed(1)}%</b>。<br />
+        优化方向：让同一 Warp 内的 32 个线程尽量走<b>相同分支</b>（如按数据排序、调整 tid 映射）。拖动滑块再播放，看看代价如何变化。
       </React.Fragment>
     );
   }
   return (
     <React.Fragment>
-      <b style={{color:"var(--ok)"}}>无分歧：</b>32 个 lane 始终执行同一条指令，全程利用率 <b>100%</b>，共 {cyclesDone} 周期——这是 SIMT 最高效的状态。切到「有分支分歧」对比一下差距。
+      <b style={{color:"var(--ok)"}}>无分歧：</b>32 个 lane 始终执行同一条指令，全程利用率 <b>100%</b>，共 {cyclesDone} 周期——这是 SIMT 最高效的状态。把滑块拖离两端，就能看到分歧出现。
     </React.Fragment>
   );
 }
@@ -444,6 +476,8 @@ const WARPS_PER_BLK = BLK_THREADS / 32;
 const pad = (n) => String(n).padStart(2, "0");
 
 /* ============ Module 1: Die Explorer ============ */
+const LEVELS = ["gpu", "sm", "block", "warp", "thread"];
+
 function DieExplorer({ lang }) {
   const [nav, setNav] = useState([{ type: "gpu" }]);
   const [detail, setDetail] = useState(null);
@@ -465,18 +499,27 @@ function DieExplorer({ lang }) {
 
   return (
     <div>
-      <div className="gx-crumbs">
-        {nav.map((n, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && <span className="gx-csep">›</span>}
-            <button
-              className={"gx-crumb" + (i === nav.length - 1 ? " cur" : "")}
-              onClick={() => i < nav.length - 1 && jump(i)}
-            >
-              {crumbLabel(n)}
-            </button>
-          </React.Fragment>
-        ))}
+      {/* Hierarchy map: the fixed 5-level scale strip doubles as breadcrumbs.
+          Visited levels are clickable; future levels are dimmed. */}
+      <div className="gx-map">
+        {LEVELS.map((lv, i) => {
+          const visited = i < nav.length;
+          const isCur = i === nav.length - 1;
+          const cls = "seg" + (isCur ? " cur" : visited ? " visited" : " future");
+          return (
+            <React.Fragment key={lv}>
+              {i > 0 && <span className="sep">›</span>}
+              <button
+                className={cls}
+                onClick={() => visited && !isCur && jump(i)}
+                style={{ font: "inherit" }}
+              >
+                <span className="lv">{visited ? crumbLabel(nav[i]) : s.mapNames[lv]}</span>
+                <span className="ct">{s.mapCounts[lv]}</span>
+              </button>
+            </React.Fragment>
+          );
+        })}
       </div>
       <div className="gx-stage gx-fade" key={cur.type + (cur.i ?? "")}>
         {cur.type === "gpu"    && <GpuView    lang={lang} onSM={(i) => push({ type: "sm", i })}    onPart={(p) => setDetail(p)} active={detail} />}
@@ -494,7 +537,7 @@ function DieExplorer({ lang }) {
             <div style={{ marginTop: 6 }}>
               <button
                 className="gx-btn"
-                style={{ padding: "4px 9px", fontSize: 11 }}
+                style={{ padding: "4px 9px", fontSize: 12 }}
                 onClick={() => setDetail(null)}
               >
                 {s.backToLevel}
@@ -507,27 +550,88 @@ function DieExplorer({ lang }) {
   );
 }
 
+/* kernel-launch simulation constants */
+const KERNEL_BLOCKS = 96;
+const MAX_RESIDENT = 3;
+
 function GpuView({ lang, onSM, onPart, active }) {
   const s = STR[lang];
+
+  // kernel launch animation: queue → resident (≤3/SM, 2–4 ticks each) → done
+  const [kern, setKern] = useState(null);
+  const timer = useRef(null);
+  useEffect(() => () => clearInterval(timer.current), []);
+
+  const launch = () => {
+    clearInterval(timer.current);
+    setKern({
+      queue: KERNEL_BLOCKS,
+      perSm: Array.from({ length: SM_COUNT }, () => []),
+      done: 0,
+      running: true,
+    });
+    timer.current = setInterval(() => {
+      setKern((k) => {
+        if (!k || !k.running) return k;
+        let { queue, done } = k;
+        const perSm = k.perSm.map((arr) => arr.map((t) => t - 1));
+        for (const arr of perSm) {
+          for (let j = arr.length - 1; j >= 0; j--) {
+            if (arr[j] <= 0) { arr.splice(j, 1); done += 1; }
+          }
+        }
+        for (let i = 0; i < SM_COUNT && queue > 0; i++) {
+          while (perSm[i].length < MAX_RESIDENT && queue > 0) {
+            perSm[i].push(2 + Math.floor(Math.random() * 3));
+            queue -= 1;
+          }
+        }
+        const running = queue > 0 || perSm.some((a) => a.length > 0);
+        if (!running) clearInterval(timer.current);
+        return { queue, perSm, done, running };
+      });
+    }, 220);
+  };
+  const resetKern = () => { clearInterval(timer.current); setKern(null); };
+
+  const resident = kern ? kern.perSm.reduce((a, b) => a + b.length, 0) : 0;
+
   const VramCol = () => (
     <button
       onClick={() => onPart("vram")}
       className={active === "vram" ? "gx-live" : ""}
       style={{
-        width: 46, alignSelf: "stretch", borderRadius: 8, cursor: "pointer",
+        width: 46, alignSelf: "stretch", borderRadius: 5, cursor: "pointer",
         border: "1px solid var(--mem-d)",
         background: "repeating-linear-gradient(0deg,var(--bg4) 0 13px,var(--bg3) 13px 26px)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
     >
-      <span className="gx-mono" style={{ writingMode: "vertical-rl", fontSize: 11, color: "var(--mem)", letterSpacing: 2 }}>
+      <span className="gx-mono" style={{ writingMode: "vertical-rl", fontSize: 12, color: "var(--mem)", letterSpacing: 2 }}>
         VRAM · HBM
       </span>
     </button>
   );
+
   return (
     <div>
-      <div className="gx-h" style={{ marginBottom: 12 }}>{s.gpuDieHeading}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <div className="gx-h">{s.gpuDieHeading}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {kern && (
+            <span className="gx-mono" style={{ fontSize: 12.5, color: "var(--txd)" }}>
+              {s.kQueued} <b style={{ color: "var(--tx)" }}>{kern.queue}</b>
+              {" · "}{s.kResident} <b style={{ color: "var(--accent)" }}>{resident}</b>
+              {" · "}{s.kDone} <b style={{ color: "var(--ok)" }}>{kern.done}</b>/{KERNEL_BLOCKS}
+            </span>
+          )}
+          {!kern ? (
+            <button className="gx-btn primary" onClick={launch}>{s.launchBtn}</button>
+          ) : (
+            <button className="gx-btn" onClick={resetKern}>{s.btnReset}</button>
+          )}
+        </div>
+      </div>
       <div style={{ display: "flex", gap: 10 }}>
         <VramCol />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 9 }}>
@@ -535,30 +639,51 @@ function GpuView({ lang, onSM, onPart, active }) {
             onClick={() => onPart("l2")}
             className={active === "l2" ? "gx-live" : ""}
             style={{
-              height: 38, borderRadius: 8, cursor: "pointer",
+              height: 38, borderRadius: 5, cursor: "pointer",
               border: "1px dashed var(--mem-d)", background: "var(--bg3)",
-              color: "var(--mem)", fontFamily: "'IBM Plex Mono',monospace",
-              fontSize: 12, letterSpacing: 1.5,
+              color: "var(--mem)", fontFamily: "var(--font-mono)",
+              fontSize: 12.5, letterSpacing: 1.5,
             }}
           >
             {s.l2Label}
           </button>
           <div className="gx-grid" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
-            {Array.from({ length: SM_COUNT }, (_, i) => (
-              <button key={i} className="gx-cell" onClick={() => onSM(i)}
-                style={{ padding: "11px 4px", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <div style={{ display: "flex", gap: 2 }}>
-                  {[0, 1, 2, 3].map(k => (
-                    <span key={k} style={{ width: 7, height: 7, borderRadius: 1, background: "var(--compute-d)" }} />
-                  ))}
-                </div>
-                <span className="gx-mono" style={{ fontSize: 10, color: "var(--txd)" }}>SM {pad(i)}</span>
-              </button>
-            ))}
+            {Array.from({ length: SM_COUNT }, (_, i) => {
+              const n = kern ? kern.perSm[i].length : 0;
+              return (
+                <button key={i} className="gx-cell" onClick={() => onSM(i)}
+                  style={{
+                    padding: "11px 4px", display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                    background: kern && n > 0 ? "var(--accent-soft)" : undefined,
+                    borderColor: kern && n > 0 ? "var(--compute-d)" : undefined,
+                  }}>
+                  <div style={{ display: "flex", gap: 2 }}>
+                    {kern
+                      ? [0, 1, 2].map((k) => (
+                          <span key={k} style={{
+                            width: 8, height: 8, borderRadius: 2,
+                            background: k < n ? "var(--accent)" : "transparent",
+                            border: "1px solid " + (k < n ? "var(--accent)" : "var(--line2)"),
+                            transition: ".15s",
+                          }} />
+                        ))
+                      : [0, 1, 2, 3].map((k) => (
+                          <span key={k} style={{ width: 7, height: 7, borderRadius: 1, background: "var(--compute-d)" }} />
+                        ))}
+                  </div>
+                  <span className="gx-mono" style={{ fontSize: 11, color: "var(--txd)" }}>SM {pad(i)}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
         <VramCol />
       </div>
+      {kern && !kern.running && (
+        <div className="gx-info gx-fade" style={{ marginTop: 12, borderLeftColor: "var(--ok)" }}>
+          {s.launchDone}
+        </div>
+      )}
       <div className="gx-legend" style={{ marginTop: 12 }}>
         <span><i style={{ background: "var(--compute-d)" }} />{s.legendSm}</span>
         <span><i style={{ background: "var(--mem)" }} />{s.legendMem}</span>
@@ -571,15 +696,15 @@ function GpuView({ lang, onSM, onPart, active }) {
 function SmView({ lang, i, onBlock, onPart, active }) {
   const s = STR[lang];
   const ProcBlock = ({ idx }) => (
-    <div style={{ border: "1px solid var(--line)", borderRadius: 8, padding: 9, background: "var(--bg3)" }}>
+    <div style={{ border: "1px solid var(--line)", borderRadius: 5, padding: 9, background: "var(--bg3)" }}>
       <button
         onClick={() => onPart("sched")}
         className={active === "sched" ? "gx-live" : ""}
         style={{
-          width: "100%", marginBottom: 7, cursor: "pointer", borderRadius: 5,
-          border: "1px solid var(--compute-d)", background: "var(--bg4)",
-          color: "var(--compute)", fontSize: 10.5, padding: "5px 6px",
-          fontFamily: "'IBM Plex Mono',monospace",
+          width: "100%", marginBottom: 7, cursor: "pointer", borderRadius: 4,
+          border: "1px solid var(--compute-d)", background: "var(--bg2)",
+          color: "var(--accent)", fontSize: 11.5, padding: "5px 6px",
+          fontFamily: "var(--font-mono)",
         }}
       >
         Warp Scheduler #{idx}
@@ -592,7 +717,7 @@ function SmView({ lang, i, onBlock, onPart, active }) {
           />
         ))}
       </div>
-      <div className="gx-mono" style={{ fontSize: 9.5, color: "var(--txf)", textAlign: "center" }}>
+      <div className="gx-mono" style={{ fontSize: 10.5, color: "var(--txf)", textAlign: "center" }}>
         16 × ALU (FP32/INT32)
       </div>
     </div>
@@ -601,7 +726,7 @@ function SmView({ lang, i, onBlock, onPart, active }) {
     <div>
       <div className="gx-h" style={{ marginBottom: 12 }}>{s.smInternalHeading(i)}</div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 340px", border: "1px solid var(--line2)", borderRadius: 11, padding: 11, background: "var(--bg2)" }}>
+        <div style={{ flex: "1 1 340px", border: "1px solid var(--line2)", borderRadius: 6, padding: 11, background: "var(--bg2)" }}>
           <div className="gx-grid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 9 }}>
             {[0, 1, 2, 3].map(k => <ProcBlock key={k} idx={k} />)}
           </div>
@@ -609,10 +734,10 @@ function SmView({ lang, i, onBlock, onPart, active }) {
             onClick={() => onPart("reg")}
             className={active === "reg" ? "gx-live" : ""}
             style={{
-              width: "100%", marginBottom: 8, cursor: "pointer", borderRadius: 7,
+              width: "100%", marginBottom: 8, cursor: "pointer", borderRadius: 5,
               border: "1px solid var(--mem-d)", background: "var(--bg3)",
-              color: "var(--mem)", fontSize: 11, padding: "9px",
-              fontFamily: "'IBM Plex Mono',monospace",
+              color: "var(--mem)", fontSize: 12, padding: "9px",
+              fontFamily: "var(--font-mono)",
             }}
           >
             REGISTER FILE · {lang === 'en' ? 'Register File' : '寄存器文件'} (64K × 32-bit{lang === 'en' ? ', per-thread' : '，线程私有'})
@@ -621,27 +746,27 @@ function SmView({ lang, i, onBlock, onPart, active }) {
             onClick={() => onPart("sram")}
             className={active === "sram" ? "gx-live" : ""}
             style={{
-              width: "100%", cursor: "pointer", borderRadius: 7,
+              width: "100%", cursor: "pointer", borderRadius: 5,
               border: "1px solid var(--mem)", background: "var(--bg3)",
-              color: "var(--mem)", fontSize: 11, padding: "11px",
-              fontFamily: "'IBM Plex Mono',monospace",
+              color: "var(--mem)", fontSize: 12, padding: "11px",
+              fontFamily: "var(--font-mono)",
             }}
           >
             ◆ SRAM · {lang === 'en' ? 'L1 Cache + Shared Memory (≈ 228 KB, shared across processing blocks)' : 'L1 缓存 + 共享内存 (≈ 228 KB，处理块共用)'}
           </button>
         </div>
         <div style={{ flex: "1 1 220px" }}>
-          <div className="gx-h" style={{ marginBottom: 8, fontSize: 11 }}>{s.residentBlocks}</div>
+          <div className="gx-h" style={{ marginBottom: 8, fontSize: 12 }}>{s.residentBlocks}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[0, 1, 2].map(b => (
               <button key={b} className="gx-cell" onClick={() => onBlock(b)}
                 style={{ padding: "12px 13px", textAlign: "left", borderColor: "var(--exec-d)" }}>
-                <div className="gx-mono" style={{ fontSize: 12.5, color: "var(--exec)" }}>Block {b}</div>
-                <div style={{ fontSize: 10.5, color: "var(--txd)", marginTop: 3 }}>{s.blockSubline(WARPS_PER_BLK)}</div>
+                <div className="gx-mono" style={{ fontSize: 13.5, color: "var(--exec)" }}>Block {b}</div>
+                <div style={{ fontSize: 12, color: "var(--txd)", marginTop: 3 }}>{s.blockSubline(WARPS_PER_BLK)}</div>
               </button>
             ))}
           </div>
-          <div style={{ fontSize: 10.5, color: "var(--txf)", marginTop: 9, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12.5, color: "var(--txf)", marginTop: 9, lineHeight: 1.55 }}>
             {s.smOccupancyNote}
           </div>
         </div>
@@ -655,14 +780,14 @@ function BlockView({ lang, i, onWarp }) {
   return (
     <div>
       <div className="gx-h" style={{ marginBottom: 4 }}>{s.blockHeading(i, WARPS_PER_BLK)}</div>
-      <div style={{ fontSize: 11.5, color: "var(--txd)", marginBottom: 13 }}>
+      <div style={{ fontSize: 13.5, color: "var(--txd)", marginBottom: 13 }}>
         {s.blockSubtext}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {Array.from({ length: WARPS_PER_BLK }, (_, w) => (
           <button key={w} className="gx-cell" onClick={() => onWarp(w)}
             style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 9px", borderColor: "var(--exec-d)" }}>
-            <span className="gx-mono" style={{ fontSize: 10.5, color: "var(--exec)", width: 52, flex: "none" }}>Warp {w}</span>
+            <span className="gx-mono" style={{ fontSize: 12, color: "var(--exec)", width: 58, flex: "none" }}>Warp {w}</span>
             <span style={{ display: "flex", gap: 2, flexWrap: "wrap", flex: 1 }}>
               {Array.from({ length: 32 }, (_, t) => (
                 <span key={t} style={{ width: 9, height: 9, borderRadius: 2, background: "var(--exec-d)" }} />
@@ -680,14 +805,14 @@ function WarpView({ lang, i, onThread }) {
   return (
     <div>
       <div className="gx-h" style={{ marginBottom: 4 }}>{s.warpHeading(i)}</div>
-      <div style={{ fontSize: 11.5, color: "var(--txd)", marginBottom: 13 }}>
+      <div style={{ fontSize: 13.5, color: "var(--txd)", marginBottom: 13 }}>
         {s.warpSubtext}
       </div>
       <div className="gx-grid" style={{ gridTemplateColumns: "repeat(8,1fr)" }}>
         {Array.from({ length: 32 }, (_, t) => (
           <button key={t} className="gx-cell" onClick={() => onThread(t)}
             style={{ padding: "13px 4px", textAlign: "center", borderColor: "var(--exec-d)" }}>
-            <div className="gx-mono" style={{ fontSize: 10, color: "var(--txd)" }}>T{pad(t)}</div>
+            <div className="gx-mono" style={{ fontSize: 11, color: "var(--txd)" }}>T{pad(t)}</div>
           </button>
         ))}
       </div>
@@ -707,7 +832,7 @@ function ThreadView({ lang, i }) {
       <div className="gx-h" style={{ marginBottom: 12 }}>{s.threadHeading(i)}</div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 260px" }}>
-          <div className="gx-mono" style={{ fontSize: 11, color: "var(--mem)", marginBottom: 7 }}>
+          <div className="gx-mono" style={{ fontSize: 12, color: "var(--mem)", marginBottom: 7 }}>
             {s.threadRegLabel}
           </div>
           <div className="gx-grid" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
@@ -715,8 +840,8 @@ function ThreadView({ lang, i }) {
               <div key={r.n} style={{
                 display: "flex", justifyContent: "space-between",
                 background: "var(--bg3)", border: "1px solid var(--mem-d)",
-                borderRadius: 5, padding: "5px 9px",
-                fontFamily: "'IBM Plex Mono',monospace", fontSize: 10.5,
+                borderRadius: 4, padding: "5px 9px",
+                fontFamily: "var(--font-mono)", fontSize: 12,
               }}>
                 <span style={{ color: "var(--mem)" }}>{r.n}</span>
                 <span style={{ color: "var(--txd)" }}>{r.v}</span>
@@ -725,18 +850,18 @@ function ThreadView({ lang, i }) {
           </div>
         </div>
         <div style={{ flex: "1 1 190px", display: "flex", flexDirection: "column", gap: 9 }}>
-          <div style={{ background: "var(--bg3)", border: "1px solid var(--exec-d)", borderRadius: 8, padding: 12 }}>
-            <div className="gx-mono" style={{ fontSize: 10.5, color: "var(--exec)" }}>{s.threadPcLabel}</div>
-            <div className="gx-mono" style={{ fontSize: 16, color: "var(--tx)", marginTop: 4 }}>0x004C</div>
-            <div style={{ fontSize: 10, color: "var(--txf)", marginTop: 3 }}>{s.threadPcShared}</div>
+          <div style={{ background: "var(--bg3)", border: "1px solid var(--exec-d)", borderRadius: 5, padding: 12 }}>
+            <div className="gx-mono" style={{ fontSize: 12, color: "var(--exec)" }}>{s.threadPcLabel}</div>
+            <div className="gx-mono" style={{ fontSize: 17, color: "var(--tx)", marginTop: 4 }}>0x004C</div>
+            <div style={{ fontSize: 11.5, color: "var(--txf)", marginTop: 3 }}>{s.threadPcShared}</div>
           </div>
-          <div style={{ background: "var(--bg3)", border: "1px solid var(--compute-d)", borderRadius: 8, padding: 12 }}>
-            <div className="gx-mono" style={{ fontSize: 10.5, color: "var(--compute)" }}>{s.threadAluLabel}</div>
-            <div style={{ fontSize: 11.5, color: "var(--txd)", marginTop: 5, lineHeight: 1.5 }}>{s.threadAluDesc}</div>
+          <div style={{ background: "var(--bg3)", border: "1px solid var(--compute-d)", borderRadius: 5, padding: 12 }}>
+            <div className="gx-mono" style={{ fontSize: 12, color: "var(--accent)" }}>{s.threadAluLabel}</div>
+            <div style={{ fontSize: 13, color: "var(--txd)", marginTop: 5, lineHeight: 1.55 }}>{s.threadAluDesc}</div>
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "var(--txf)", marginTop: 11, lineHeight: 1.55 }}>
+      <div style={{ fontSize: 12.5, color: "var(--txf)", marginTop: 11, lineHeight: 1.6 }}>
         {s.threadSpillTip}
       </div>
     </div>
@@ -776,39 +901,69 @@ function MemoryPyramid({ lang }) {
   const [sel, setSel] = useState(3);
   const [dotStage, setDotStage] = useState(-1);
   const [running, setRunning] = useState(false);
-  const timer = useRef(null);
+  const [cycles, setCycles] = useState(null); // animated cycle counter
+  const timers = useRef([]);
+
+  const clearAll = () => {
+    timers.current.forEach((id) => { clearTimeout(id); clearInterval(id); });
+    timers.current = [];
+  };
+  useEffect(() => clearAll, []);
 
   const latScale = useMemo(() => d3.scaleLog().domain([1, 600]).range([8, 100]), []);
 
+  /* Descend tier by tier; each stage animates the cycle counter up to that
+     tier's latency, with stage duration proportional to the cycles it costs —
+     registers flash by, VRAM visibly drags. */
   const runAccess = (target) => {
-    clearInterval(timer.current);
-    setSel(target); setRunning(true); setDotStage(0);
-    let st = 0;
-    timer.current = setInterval(() => {
-      st += 1;
-      if (st > target) { clearInterval(timer.current); setRunning(false); return; }
-      setDotStage(st);
-    }, 480);
+    clearAll();
+    setSel(target); setRunning(true); setCycles(0); setDotStage(0);
+    let at = 0;
+    for (let k = 0; k <= target; k++) {
+      const from = k === 0 ? 0 : TIERS[k - 1].lat;
+      const to = TIERS[k].lat;
+      const dur = 240 + Math.min(1100, (to - from) * 2.4);
+      const stageId = setTimeout(() => {
+        setDotStage(k);
+        const t0 = performance.now();
+        const iv = setInterval(() => {
+          const p = Math.min(1, (performance.now() - t0) / dur);
+          const e = p * p * (3 - 2 * p); // smoothstep
+          setCycles(Math.round(from + (to - from) * e));
+          if (p >= 1) clearInterval(iv);
+        }, 40);
+        timers.current.push(iv);
+      }, at);
+      timers.current.push(stageId);
+      at += dur + 150;
+    }
+    const endId = setTimeout(() => setRunning(false), at);
+    timers.current.push(endId);
   };
-  useEffect(() => () => clearInterval(timer.current), []);
 
   const ROW = 78;
 
   const tierScope = (t) => lang === 'en' ? t.scope_en : t.scope_zh;
-  const tierCn = (t) => lang === 'en' ? '' : ` · ${t.scope_zh}`;
   const tierDesc = (t) => lang === 'en' ? t.en.d : t.zh.d;
 
   return (
     <div className="gx-fade">
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 380px", position: "relative" }}>
-          <div className="gx-h" style={{ marginBottom: 10 }}>{s.memPyramidHeading}</div>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+            <div className="gx-h">{s.memPyramidHeading}</div>
+            {cycles != null && (
+              <span className="gx-mono" style={{ fontSize: 13, color: "var(--txd)", whiteSpace: "nowrap" }}>
+                <b className="gx-mono" style={{ fontSize: 22, color: running ? "var(--accent)" : "var(--mem)" }}>{cycles}</b>
+                {' '}{s.cyclesElapsed}
+              </span>
+            )}
+          </div>
           <div style={{ position: "relative" }}>
             {dotStage >= 0 && (
               <div style={{
                 position: "absolute", left: -13, top: dotStage * ROW + ROW / 2 - 7,
-                width: 14, height: 14, borderRadius: "50%", background: "var(--compute)",
-                boxShadow: "0 0 12px var(--compute)",
+                width: 14, height: 14, borderRadius: "50%", background: "var(--accent)",
                 transition: "top .42s cubic-bezier(.5,0,.2,1)", zIndex: 2,
               }} />
             )}
@@ -822,32 +977,30 @@ function MemoryPyramid({ lang }) {
                     onClick={() => setSel(i)}
                     style={{
                       minHeight: ROW - 8,
-                      outline: hit ? "1px solid var(--compute)" : "none",
-                      background: reached ? "var(--bg4)" : "var(--bg3)",
+                      outline: hit ? "1px solid var(--accent)" : "none",
+                      background: reached ? "var(--bg4)" : "var(--bg2)",
                     }}
                   >
                     <div className="swatch" style={{ background: t.chip ? "var(--mem)" : "var(--mem-d)" }} />
                     <div style={{ padding: "9px 12px", flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                        <span className="gx-mono" style={{ fontSize: 13, color: "var(--tx)" }}>{t.name}</span>
-                        <span style={{ fontSize: 10.5, color: t.chip ? "var(--compute)" : "var(--danger)", fontFamily: "'IBM Plex Mono',monospace" }}>
+                        <span className="gx-mono" style={{ fontSize: 14, color: "var(--tx)" }}>{t.name}</span>
+                        <span style={{ fontSize: 11.5, color: t.chip ? "var(--accent)" : "var(--danger)", fontFamily: "var(--font-mono)" }}>
                           {t.chip ? s.chipOnChip : s.chipOffChip}
                         </span>
                       </div>
-                      <div style={{ fontSize: 10.5, color: "var(--txd)", marginTop: 3 }}>
-                        {lang === 'en'
-                          ? `${tierScope(t)} · ${t.size}`
-                          : `${t.scope_zh} · ${t.size}`}
+                      <div style={{ fontSize: 12, color: "var(--txd)", marginTop: 3 }}>
+                        {`${tierScope(t)} · ${t.size}`}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
-                        <div style={{ flex: 1, height: 7, background: "var(--bg)", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ flex: 1, height: 7, background: "var(--bg3)", borderRadius: 4, overflow: "hidden" }}>
                           <div style={{
                             width: latScale(t.lat) + "%", height: "100%",
-                            background: reached ? "linear-gradient(90deg,var(--compute),var(--mem))" : "var(--mem-d)",
+                            background: reached ? "var(--mem)" : "var(--mem-d)",
                             borderRadius: 4, transition: ".3s",
                           }} />
                         </div>
-                        <span className="gx-mono" style={{ fontSize: 10, color: "var(--mem)", width: 78, textAlign: "right" }}>
+                        <span className="gx-mono" style={{ fontSize: 11, color: "var(--mem)", width: 78, textAlign: "right" }}>
                           {s.cycleUnit(t.lat)}
                         </span>
                       </div>
@@ -863,23 +1016,30 @@ function MemoryPyramid({ lang }) {
         </div>
         <div style={{ flex: "1 1 250px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div className="gx-panel" style={{ padding: 14 }}>
-            <div className="gx-h" style={{ fontSize: 11, marginBottom: 9 }}>{s.accessDemoHeading}</div>
-            <div style={{ fontSize: 11.5, color: "var(--txd)", marginBottom: 9, lineHeight: 1.5 }}>{s.accessDemoDesc}</div>
+            <div className="gx-h" style={{ fontSize: 12, marginBottom: 9 }}>{s.accessDemoHeading}</div>
+            <div style={{ fontSize: 13, color: "var(--txd)", marginBottom: 9, lineHeight: 1.55 }}>{s.accessDemoDesc}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {TIERS.map((t, i) => (
                 <button key={i} className="gx-btn" disabled={running}
-                  style={{ fontSize: 10.5, padding: "6px 9px" }}
+                  style={{ fontSize: 11.5, padding: "6px 9px" }}
                   onClick={() => runAccess(i)}>
                   {s.hitBtn(t.name.split(" ")[0])}
                 </button>
               ))}
             </div>
             {dotStage >= 0 && !running && (
-              <div style={{ marginTop: 11, padding: "9px 11px", borderRadius: 7, background: "var(--bg3)", border: "1px solid var(--compute-d)" }}>
-                <div className="gx-mono" style={{ fontSize: 11.5, color: "var(--compute)" }}>{s.hitResult(TIERS[sel].name)}</div>
-                <div style={{ fontSize: 11, color: "var(--txd)", marginTop: 3 }}>
+              <div style={{ marginTop: 11, padding: "9px 11px", borderRadius: 5, background: "var(--bg3)", border: "1px solid var(--compute-d)" }}>
+                <div className="gx-mono" style={{ fontSize: 12.5, color: "var(--accent)" }}>{s.hitResult(TIERS[sel].name)}</div>
+                <div style={{ fontSize: 12.5, color: "var(--txd)", marginTop: 3 }}>
                   {s.latResult(TIERS[sel].lat)}
                   {sel > 0 && s.latRelative(TIERS[sel].lat)}
+                </div>
+                {/* cost bar: this access vs a register hit, log-scaled like the pyramid */}
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 8 }}>
+                  <div style={{ flex: 1, height: 7, background: "var(--bg4)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: latScale(TIERS[sel].lat) + "%", height: "100%", background: "var(--mem)", borderRadius: 4 }} />
+                  </div>
+                  <span className="gx-mono" style={{ fontSize: 10.5, color: "var(--txf)" }}>reg = {latScale(1).toFixed(0)}%</span>
                 </div>
               </div>
             )}
@@ -892,7 +1052,7 @@ function MemoryPyramid({ lang }) {
               <div className="gx-kv"><span className="k">{s.kvLatency}</span><span className="v">≈ {TIERS[sel].lat} {lang === 'en' ? 'cycles' : '周期'}</span></div>
               <div className="gx-kv"><span className="k">{s.kvBandwidth}</span><span className="v">{TIERS[sel].bw}</span></div>
             </div>
-            <div style={{ marginTop: 8, lineHeight: 1.6 }}>{tierDesc(TIERS[sel])}</div>
+            <div style={{ marginTop: 8, lineHeight: 1.65 }}>{tierDesc(TIERS[sel])}</div>
           </div>
         </div>
       </div>
@@ -913,9 +1073,9 @@ const PROGRAM = [
     zh: "每条 lane 计算 R1 的平方",
   },
   {
-    asm: "SETP.GT    P0, tid, 15",
-    en: "Test tid > 15; result written to predicate register P0",
-    zh: "判断 tid > 15，结果写入谓词寄存器 P0",
+    asm: "SETP.GE    P0, tid, N",
+    en: "Test tid ≥ N; result written to predicate register P0",
+    zh: "判断 tid ≥ N，结果写入谓词寄存器 P0",
   },
   {
     asm: "@P0  BRA   ELSE",
@@ -924,8 +1084,8 @@ const PROGRAM = [
   },
   {
     asm: "ADD        R3, R2, 10",
-    en: "[IF]   executed by threads where tid ≤ 15",
-    zh: "[IF]   tid ≤ 15 的线程执行",
+    en: "[IF]   executed by threads where tid < N",
+    zh: "[IF]   tid < N 的线程执行",
   },
   {
     asm: "BRA        DONE",
@@ -934,8 +1094,8 @@ const PROGRAM = [
   },
   {
     asm: "SUB        R3, R2, 10",
-    en: "[ELSE] executed by threads where tid > 15",
-    zh: "[ELSE] tid > 15 的线程执行",
+    en: "[ELSE] executed by threads where tid ≥ N",
+    zh: "[ELSE] tid ≥ N 的线程执行",
   },
   {
     asm: "ST.global  [out], R3",
@@ -943,32 +1103,43 @@ const PROGRAM = [
     zh: "全部线程把结果写回显存",
   },
 ];
-const ALL_MASK   = Array.from({ length: 32 }, () => true);
-const IF_LANES   = Array.from({ length: 32 }, (_, t) => t <= 15);
-const ELSE_LANES = Array.from({ length: 32 }, (_, t) => t > 15);
+const ALL_MASK = Array.from({ length: 32 }, () => true);
 
-function buildTrace(divergent, lang) {
-  if (!divergent) {
-    return [0, 1, 2, 3, 4, 5, 7].map(pc => ({
+/* splitAt = number of threads (tid < splitAt) taking the IF branch.
+   0 or 32 → uniform: the empty branch's instructions are never issued. */
+function buildTrace(splitAt, lang) {
+  const IF_LANES = Array.from({ length: 32 }, (_, t) => t < splitAt);
+  const ELSE_LANES = IF_LANES.map((b) => !b);
+  const uniformNote = lang === 'en'
+    ? "Predicate is uniform → no divergence, Warp stays fully active"
+    : "谓词结果一致 → 不发生分歧，warp 保持满载";
+
+  if (splitAt >= 32) {
+    // everyone takes IF: branch at I3 not taken, ELSE (I6) never issued
+    return [0, 1, 2, 3, 4, 5, 7].map((pc) => ({
       pc, mask: ALL_MASK, phase: "all",
-      note: pc === 3
-        ? (lang === 'en'
-            ? "Predicate is uniform → no divergence, Warp stays fully active"
-            : "谓词结果一致 → 不发生分歧，warp 保持满载")
-        : "",
+      note: pc === 3 ? uniformNote : "",
     }));
   }
+  if (splitAt <= 0) {
+    // everyone takes ELSE: IF body (I4, I5) never issued
+    return [0, 1, 2, 3, 6, 7].map((pc) => ({
+      pc, mask: ALL_MASK, phase: "all",
+      note: pc === 3 ? uniformNote : "",
+    }));
+  }
+  const nIf = splitAt, nElse = 32 - splitAt;
   const notes = lang === 'en' ? {
-    n3: "Branch evaluated: lanes split into IF / ELSE groups",
-    n4: "IF group executing; ELSE group masked (idle) — utilization drops to 50%",
-    n5: "Still in IF block; ELSE group continues to wait idle",
-    n6: "ELSE group's turn; IF group is now masked — the other half of divergence cost",
+    n3: `Branch evaluated: lanes split into IF (${nIf}) / ELSE (${nElse}) groups`,
+    n4: `IF group (${nIf} lanes) executing; ${nElse} lanes masked (idle) — utilization ${Math.round(nIf / 32 * 100)}%`,
+    n5: `Still in IF block; the ELSE group continues to wait idle`,
+    n6: `ELSE group's turn (${nElse} lanes); the IF group is now masked — the other half of divergence cost`,
     n7: "Branch reconverges; Warp is fully active again",
   } : {
-    n3: "分支判定：lane 分裂成 IF / ELSE 两组",
-    n4: "IF 组执行，ELSE 组被屏蔽(idle)——利用率掉到 50%",
-    n5: "仍在 IF 段，ELSE 组继续空等",
-    n6: "轮到 ELSE 组，IF 组被屏蔽——分歧的另一半代价",
+    n3: `分支判定：lane 分裂成 IF (${nIf}) / ELSE (${nElse}) 两组`,
+    n4: `IF 组（${nIf} 条 lane）执行，${nElse} 条 lane 被屏蔽(idle)——利用率 ${Math.round(nIf / 32 * 100)}%`,
+    n5: `仍在 IF 段，ELSE 组继续空等`,
+    n6: `轮到 ELSE 组（${nElse} 条 lane），IF 组被屏蔽——分歧的另一半代价`,
     n7: "分支汇合(reconverge)，warp 重新满载",
   };
   return [
@@ -985,23 +1156,24 @@ function buildTrace(divergent, lang) {
 
 function Stat({ label, val, warn }) {
   return (
-    <div style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px", minWidth: 78 }}>
-      <div style={{ fontSize: 9.5, color: "var(--txd)", textTransform: "uppercase", letterSpacing: .6 }}>{label}</div>
-      <div className="gx-mono" style={{ fontSize: 16, marginTop: 2, color: warn ? "var(--danger)" : "var(--tx)" }}>{val}</div>
+    <div style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--line)", borderRadius: 5, padding: "8px 10px", minWidth: 78 }}>
+      <div style={{ fontSize: 11, color: "var(--txd)", textTransform: "uppercase", letterSpacing: .6 }}>{label}</div>
+      <div className="gx-mono" style={{ fontSize: 17, marginTop: 2, color: warn ? "var(--danger)" : "var(--tx)" }}>{val}</div>
     </div>
   );
 }
 
 function WarpSimt({ lang }) {
   const s = STR[lang];
-  const [divergent, setDivergent] = useState(true);
+  const [splitAt, setSplitAt] = useState(16); // threads taking the IF branch
   const [step, setStep] = useState(-1);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(900);
   const timer = useRef(null);
-  const trace = useMemo(() => buildTrace(divergent, lang), [divergent, lang]);
+  const trace = useMemo(() => buildTrace(splitAt, lang), [splitAt, lang]);
+  const divergent = splitAt > 0 && splitAt < 32;
 
-  useEffect(() => { stopPlay(); setStep(-1); }, [divergent]);
+  useEffect(() => { stopPlay(); setStep(-1); }, [splitAt]);
   useEffect(() => () => clearInterval(timer.current), []);
 
   function stopPlay() { clearInterval(timer.current); setPlaying(false); }
@@ -1033,9 +1205,16 @@ function WarpSimt({ lang }) {
     return active / ((step + 1) * 32);
   }, [step, trace]);
 
+  // whole-run prediction shown live next to the slider
+  const predicted = useMemo(() => {
+    const total = trace.reduce((a, st) => a + st.mask.filter(Boolean).length, 0);
+    return { cycles: trace.length, util: (total / (trace.length * 32) * 100).toFixed(1) };
+  }, [trace]);
+
+  const inIfGroup = (t) => t < splitAt;
   const laneColor = (t) => {
-    if (!started) return divergent ? (IF_LANES[t] ? "var(--compute-d)" : "var(--exec-d)") : "var(--compute-d)";
-    return curMask[t] ? "var(--compute)" : "var(--bg4)";
+    if (!started) return divergent ? (inIfGroup(t) ? "var(--compute-d)" : "var(--exec-d)") : "var(--compute-d)";
+    return curMask[t] ? "var(--accent)" : "var(--bg4)";
   };
 
   const instrDesc = (ins) => lang === 'en' ? ins.en : ins.zh;
@@ -1048,13 +1227,23 @@ function WarpSimt({ lang }) {
 
   return (
     <div className="gx-fade">
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-        <span className="gx-h" style={{ fontSize: 11 }}>{s.execModeLabel}</span>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 6 }}>
+        <span className="gx-h" style={{ fontSize: 12 }}>{s.sliderLabel}</span>
+        <input
+          type="range" min={0} max={32} value={splitAt}
+          className="gx-slider"
+          onChange={(e) => setSplitAt(Number(e.target.value))}
+        />
+        <span className="gx-mono" style={{ fontSize: 14, color: "var(--accent)", width: 56 }}>
+          {splitAt} / 32
+        </span>
         <div className="gx-seg">
-          <button className={divergent ? "" : "on"} onClick={() => setDivergent(false)}>{s.modeUniform}</button>
-          <button className={divergent ? "on" : ""} onClick={() => setDivergent(true)}>{s.modeDivergent}</button>
+          <button className={splitAt === 32 ? "on" : ""} onClick={() => setSplitAt(32)}>{s.presetUniform}</button>
+          <button className={splitAt === 16 ? "on" : ""} onClick={() => setSplitAt(16)}>{s.presetHalf}</button>
         </div>
-        <span style={{ fontSize: 11, color: "var(--txf)" }}>{s.modeCompareHint}</span>
+      </div>
+      <div style={{ fontSize: 13.5, color: "var(--txd)", marginBottom: 14 }}>
+        {s.predicted(predicted.cycles, predicted.util)}
       </div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 320px" }}>
@@ -1064,23 +1253,22 @@ function WarpSimt({ lang }) {
               const masked = started && !curMask[t];
               return (
                 <div key={t} className={masked ? "gx-masked" : ""} style={{
-                  aspectRatio: "1", borderRadius: 5,
-                  border: "1px solid " + (started && curMask[t] ? "var(--compute)" : "var(--line)"),
+                  aspectRatio: "1", borderRadius: 4,
+                  border: "1px solid " + (started && curMask[t] ? "var(--accent)" : "var(--line)"),
                   background: laneColor(t),
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   transition: ".18s",
-                  boxShadow: started && curMask[t] ? "0 0 11px rgba(63,217,196,.45)" : "none",
                 }}>
-                  <span className="gx-mono" style={{ fontSize: 9.5, color: started && curMask[t] ? "#06302b" : "var(--txd)" }}>{pad(t)}</span>
-                  {masked && <span style={{ fontSize: 8, color: "var(--txf)" }}>idle</span>}
+                  <span className="gx-mono" style={{ fontSize: 10.5, color: started && curMask[t] ? "#fff" : "var(--txd)" }}>{pad(t)}</span>
+                  {masked && <span style={{ fontSize: 9, color: "var(--txf)" }}>idle</span>}
                 </div>
               );
             })}
           </div>
           {divergent && !started && (
             <div className="gx-legend" style={{ marginTop: 10 }}>
-              <span><i style={{ background: "var(--compute-d)" }} />{s.ifGroupLabel}</span>
-              <span><i style={{ background: "var(--exec-d)" }} />{s.elseGroupLabel}</span>
+              <span><i style={{ background: "var(--compute-d)" }} />{s.ifGroupLabel(splitAt)}</span>
+              <span><i style={{ background: "var(--exec-d)" }} />{s.elseGroupLabel(splitAt)}</span>
             </div>
           )}
           <div style={{ display: "flex", gap: 8, marginTop: 13 }}>
@@ -1091,19 +1279,21 @@ function WarpSimt({ lang }) {
         </div>
         <div style={{ flex: "1 1 300px" }}>
           <div className="gx-h" style={{ marginBottom: 9 }}>{s.instrStreamHeading}</div>
-          <div style={{ background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 9, padding: 8 }}>
+          <div style={{ background: "var(--bg3)", border: "1px solid var(--line)", borderRadius: 6, padding: 8 }}>
             {PROGRAM.map((ins, pc) => {
               const active = curStep && curStep.pc === pc;
               const phase = active ? curStep.phase : null;
+              const skipped = !trace.some((st) => st.pc === pc);
               return (
                 <div key={pc} style={{
-                  display: "flex", gap: 9, alignItems: "center", padding: "6px 8px", borderRadius: 5,
+                  display: "flex", gap: 9, alignItems: "center", padding: "6px 8px", borderRadius: 4,
                   background: active ? "var(--bg4)" : "transparent",
-                  borderLeft: "2px solid " + (active ? (phase === "if" ? "var(--compute)" : phase === "else" ? "var(--exec)" : "var(--mem)") : "transparent"),
+                  opacity: skipped ? 0.4 : 1,
+                  borderLeft: "2px solid " + (active ? (phase === "if" ? "var(--accent)" : phase === "else" ? "var(--exec)" : "var(--mem)") : "transparent"),
                 }}>
-                  <span className="gx-mono" style={{ fontSize: 9.5, color: "var(--txf)", width: 22 }}>I{pc}</span>
-                  <span className="gx-mono" style={{ fontSize: 11.5, flex: 1, color: active ? "var(--tx)" : "var(--txd)" }}>{ins.asm}</span>
-                  {active && <span className="gx-mono gx-blink" style={{ fontSize: 9, color: "var(--compute)" }}>◀ PC</span>}
+                  <span className="gx-mono" style={{ fontSize: 10.5, color: "var(--txf)", width: 22 }}>I{pc}</span>
+                  <span className="gx-mono" style={{ fontSize: 12.5, flex: 1, whiteSpace: "pre", color: active ? "var(--tx)" : "var(--txd)", textDecoration: skipped ? "line-through" : "none" }}>{ins.asm}</span>
+                  {active && <span className="gx-mono gx-blink" style={{ fontSize: 10, color: "var(--accent)" }}>◀ PC</span>}
                 </div>
               );
             })}
@@ -1116,7 +1306,7 @@ function WarpSimt({ lang }) {
               notStartedHint(lang, divergent)
             ) : (
               <React.Fragment>
-                <span className="gx-mono" style={{ color: "var(--compute)" }}>
+                <span className="gx-mono" style={{ color: "var(--accent)", fontSize: 14 }}>
                   I{curStep.pc} · {PROGRAM[curStep.pc].asm.split(/\s+/)[0]}
                 </span>
                 <br />
@@ -1141,7 +1331,7 @@ function WarpSimt({ lang }) {
         <button className="gx-btn" onClick={next} disabled={playing || finished}>{s.btnStep}</button>
         <button className="gx-btn" onClick={reset} disabled={step < 0}>{s.btnReset}</button>
         <span style={{ flex: 1 }} />
-        <span className="gx-h" style={{ fontSize: 10 }}>{s.speedLabel}</span>
+        <span className="gx-h" style={{ fontSize: 11 }}>{s.speedLabel}</span>
         <div className="gx-seg">
           {speedOptions.map(([v, l]) => (
             <button key={v} className={speed === v ? "on" : ""} onClick={() => setSpeed(v)}>{l}</button>
@@ -1150,7 +1340,7 @@ function WarpSimt({ lang }) {
       </div>
       {finished && (
         <div className="gx-info" style={{ marginTop: 13, borderLeftColor: divergent ? "var(--danger)" : "var(--ok)" }}>
-          {finishedMsg(lang, divergent, cyclesDone, avgUtil)}
+          {finishedMsg(lang, splitAt, cyclesDone, avgUtil)}
         </div>
       )}
     </div>
@@ -1165,13 +1355,13 @@ function GlossaryBar({ lang }) {
     <div className="gx-panel" style={{ padding: 13, marginTop: 18 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <span className="gx-h">{s.glossaryTitle}</span>
-        <span style={{ fontSize: 10.5, color: "var(--txf)" }}>{s.glossaryHint}</span>
+        <span style={{ fontSize: 12, color: "var(--txf)" }}>{s.glossaryHint}</span>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
         {GLOSSARY.map((g, i) => (
           <button key={g.t} onClick={() => setOpen(open === i ? null : i)} className="gx-mono"
             style={{
-              fontSize: 11.5, cursor: "pointer", padding: "6px 11px", borderRadius: 7,
+              fontSize: 12.5, cursor: "pointer", padding: "6px 11px", borderRadius: 5,
               background: open === i ? "var(--bg4)" : "var(--bg3)",
               border: "1px solid " + (open === i ? FAM[g.fam] : "var(--line)"),
               color: open === i ? FAM[g.fam] : "var(--txd)", transition: ".14s",
@@ -1209,9 +1399,7 @@ export default function GpuSandbox({ lang = 'en' }) {
   return (
     <div className="gx" style={{ height: "100%", overflowY: "auto" }}>
       <style>{GPU_CSS}</style>
-      {/* Scale the px-based sandbox interior to match the site's 112.5%
-          root size. `zoom` (not transform: scale) so the scroll area reflows. */}
-      <div className="gx-wrap" style={{ zoom: 1.125 }}>
+      <div className="gx-wrap">
         <div className="gx-head">
           <div>
             <div className="gx-title">{s.mainTitle}</div>
@@ -1222,14 +1410,13 @@ export default function GpuSandbox({ lang = 'en' }) {
         <div className="gx-tabs">
           {GPU_TABS.map(t => (
             <button key={t.id} className={"gx-tab" + (tab === t.id ? " on" : "")}
-              onClick={() => setTab(t.id)}
-              style={tab === t.id ? { background: t.color } : {}}>
-              <span className="dot" style={{ background: tab === t.id ? "#0a0d13" : t.color }} />
+              onClick={() => setTab(t.id)}>
+              <span className="dot" style={{ background: t.color }} />
               {t.label}
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 12, color: "var(--txd)", marginBottom: 14, fontFamily: "'IBM Plex Mono',monospace" }}>
+        <div style={{ fontSize: 13.5, color: "var(--txd)", marginBottom: 14, fontFamily: "var(--font-mono)" }}>
           ▸ {meta.sub}
         </div>
         <div className="gx-panel" style={{ padding: 18 }} key={tab}>
@@ -1238,7 +1425,7 @@ export default function GpuSandbox({ lang = 'en' }) {
           {tab === "warp" && <WarpSimt lang={lang} />}
         </div>
         <GlossaryBar lang={lang} />
-        <div style={{ textAlign: "center", marginTop: 22, fontSize: 10.5, color: "var(--txf)", fontFamily: "'IBM Plex Mono',monospace" }}>
+        <div style={{ textAlign: "center", marginTop: 24, fontSize: 12, color: "var(--txf)", fontFamily: "var(--font-mono)" }}>
           {s.footer}
         </div>
       </div>
