@@ -1,6 +1,15 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GpuSandbox from '../sandboxes/gpu/GpuSandbox.jsx';
+
+// Heavy sandboxes load lazily so their deps (three.js) stay out of the
+// main bundle — same pattern as PostPage's mermaid import.
+const KernelSandbox = lazy(() => import('../sandboxes/kernel/KernelSandbox.jsx'));
+
+const SANDBOX_COMPONENTS = {
+  'gpu-architecture': GpuSandbox,
+  'kernel-life': KernelSandbox,
+};
 
 // Full-screen sandbox view. The chrome is a minimal blog-style app bar;
 // everything reads the site's design tokens, so the page follows the
@@ -8,7 +17,7 @@ import GpuSandbox from '../sandboxes/gpu/GpuSandbox.jsx';
 export default function SandboxPage({ sandbox, sandboxes, lang, t, theme, setTheme }) {
   const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
-  const isGpu = sandbox.id === 'gpu-architecture';
+  const Sandbox = SANDBOX_COMPONENTS[sandbox.id];
 
   const openSandbox = (s) => {
     setShowInfo(false);
@@ -183,8 +192,20 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t, theme, setThe
       {/* Sandbox viewport */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
         <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
-          {isGpu ? (
-            <GpuSandbox lang={lang} />
+          {Sandbox ? (
+            <Suspense
+              fallback={
+                <div style={{
+                  height: '100%', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', color: 'var(--fg-3)',
+                  fontFamily: 'var(--font-mono)', fontSize: '14px',
+                }}>
+                  loading…
+                </div>
+              }
+            >
+              <Sandbox lang={lang} theme={theme} />
+            </Suspense>
           ) : (
             <div
               style={{
