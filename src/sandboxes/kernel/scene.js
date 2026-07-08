@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import {
   CAM_KEYS, TOTAL, SM_COUNT, GRID_BLOCKS, WARP_ROWS,
-  FOCUS_BLOCK, blockSchedule,
+  FOCUS_BLOCK, blockSchedule, reduceState, REDUCE_T0,
 } from './script.js';
 
 /* ---------- layout ---------- */
@@ -16,18 +16,29 @@ const TOWERS = [[-21, -6], [-21, 6], [21, -6], [21, 6]];
 const SLABS_PER_TOWER = 5;
 
 const hoverPos = (b) => [-12.1 + (b % 12) * 2.2, 13, -7.7 + Math.floor(b / 12) * 2.2];
+const ribbonPos = (b) => [-14.25 + b * 0.3, 16, 0];
 const slotPos = (sm, slot) => {
   const [x, , z] = smPos(sm);
   return [x + (slot - 1) * 1.35, 3.1, z];
 };
 
 const BOARD_Y = 4.8;
+const SRAM_Y = 3.5;
 const boardLanePos = (row, lane) => [
   SM_X[1] + (lane - 15.5) * 0.24,
   BOARD_Y,
   SM_Z[1] - 1.4 + row * 0.4,
 ];
+/* the SRAM plate sits in front of (south of) the warp board so the camera
+   sees both layers instead of the board occluding the tile */
+const SRAM_Z0 = SM_Z[1] + 1.5;
+const sramCellPos = (idx) => {
+  const row = Math.floor(idx / 32);
+  const lane = idx % 32;
+  return [SM_X[1] + (lane - 15.5) * 0.24, SRAM_Y, SRAM_Z0 + row * 0.4];
+};
 const rowCenter = (row) => [SM_X[1], BOARD_Y, SM_Z[1] - 1.4 + row * 0.4];
+const PLATE_CENTER = [SM_X[1], SRAM_Y, SRAM_Z0 + 1.4];
 
 /* ---------- themes (exported so the legend can show matching swatches) ---------- */
 export const THEMES = {
@@ -36,6 +47,7 @@ export const THEMES = {
     l2: '#e2c893', hbmDim: '#e6d9bd', hbm: '#d0a656',
     block: '#8f76c0', blockSel: '#1565c0',
     warpDim: '#cfc3e6', warpActive: '#1565c0', warpStall: '#bdbdbd', warpSel: '#b26a00',
+    sramCell: '#e9e2d2', sramFill: '#c98a2e',
     particle: '#b26a00', beam: '#b26a00', request: '#b26a00',
     label: '#616161', hemi: '#ffffff', ground: '#e8e8e8', dirI: 0.75, hemiI: 0.95,
   },
@@ -44,6 +56,7 @@ export const THEMES = {
     l2: '#6e5426', hbmDim: '#463c2c', hbm: '#a67c3a',
     block: '#7e68b0', blockSel: '#42a5f5',
     warpDim: '#4a3d6e', warpActive: '#42a5f5', warpStall: '#5a5a5a', warpSel: '#d99a3d',
+    sramCell: '#3c3628', sramFill: '#e0a84e',
     particle: '#d99a3d', beam: '#d99a3d', request: '#d99a3d',
     label: '#aaaaaa', hemi: '#ffffff', ground: '#181818', dirI: 0.55, hemiI: 0.7,
   },
@@ -172,11 +185,30 @@ export function createScene(canvas) {
   scene.add(board);
   for (let i = 0; i < WARP_ROWS * 32; i++) board.setColorAt(i, new THREE.Color('#ffffff'));
 
-  /* memcpy / writeback particles */
+  /* SRAM tile plate: 256 cells under the warp board — tile[256] made visible */
+  const sramMat = new THREE.MeshLambertMaterial();
+  const sram = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.17, 0.06, 0.3), sramMat, 256);
+  scene.add(sram);
+  for (let i = 0; i < 256; i++) sram.setColorAt(i, new THREE.Color('#ffffff'));
+
+  /* __syncthreads() barrier flash: a bright plane sweeping the board */
+  const barrierMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  const barrier = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.05, 3.6), barrierMat);
+  barrier.position.set(SM_X[1], (BOARD_Y + SRAM_Y) / 2, SM_Z[1] - 1.4 + 1.4);
+  barrier.visible = false;
+  scene.add(barrier);
+
+  /* memcpy particles (ch1) */
   const PARTS = 64;
   const partMat = new THREE.MeshLambertMaterial();
   const parts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), partMat, PARTS);
   scene.add(parts);
+
+  /* partial-sum dots (ch7–8): one per block */
+  const dotMat = new THREE.MeshLambertMaterial();
+  const dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.26, 10, 8), dotMat, GRID_BLOCKS);
+  scene.add(dots);
 
   /* ch4 memory request */
   const reqMat = new THREE.MeshLambertMaterial();
@@ -184,36 +216,20 @@ export function createScene(canvas) {
   req.visible = false;
   scene.add(req);
 
-  /* ch5 beams */
+  /* ch3 load beams: HBM → SRAM plate */
   const beamMat = new THREE.MeshLambertMaterial({ transparent: true, opacity: 0.85 });
   const fatBeam = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 10), beamMat);
   fatBeam.visible = false;
   scene.add(fatBeam);
 
   const lineMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.75 });
-  const focusRow = 4;
-  const gatherGeo = new THREE.BufferGeometry();
-  {
-    const pos = new Float32Array(32 * 2 * 3);
-    const c = rowCenter(focusRow);
-    for (let l = 0; l < 32; l++) {
-      const p = boardLanePos(focusRow, l);
-      pos.set([...p, ...c], l * 6);
-    }
-    gatherGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  }
-  const gather = new THREE.LineSegments(gatherGeo, lineMat);
-  gather.visible = false;
-  scene.add(gather);
-
   const scatterGeo = new THREE.BufferGeometry();
   {
     const pos = new Float32Array(32 * 2 * 3);
     for (let l = 0; l < 32; l++) {
-      const p = boardLanePos(focusRow, l);
-      const tz = -10 + hash(l * 3 + 1) * 20;
-      const ty = 0.8 + hash(l * 7 + 2) * 4;
-      pos.set([...p, -18.8, ty, tz], l * 6);
+      const src = [-18.8, 0.8 + hash(l * 7 + 2) * 4, -10 + hash(l * 3 + 1) * 20];
+      const dst = sramCellPos((l * 37) % 256);
+      pos.set([...src, ...dst], l * 6);
     }
     scatterGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   }
@@ -238,15 +254,15 @@ export function createScene(canvas) {
   cloud.visible = false;
   scene.add(cloud);
 
-  /* labels — persistent anatomy labels plus contextual ones that appear
-     with the thing they name (win = the window [t0, t1] they're shown in) */
+  /* labels — persistent anatomy labels plus contextual ones (win = shown window) */
   const labels = [
     { sprite: makeLabelSprite('HBM', theme.label), pos: [-21, 6.6, -6] },
     { sprite: makeLabelSprite('HBM', theme.label), pos: [21, 6.6, 6] },
     { sprite: makeLabelSprite('L2', theme.label), pos: [0, 3.8, 0] },
     { sprite: makeLabelSprite('SM', theme.label), pos: [13.75, 4.4, 9] },
-    { sprite: makeLabelSprite('blocks', theme.label), pos: [0, 16.4, -7.7], win: [18.8, 30] },
-    { sprite: makeLabelSprite('warps', theme.label, 0.45), pos: [SM_X[1], 6.1, SM_Z[1] - 2.7], win: [33.2, 65.5] },
+    { sprite: makeLabelSprite('blocks', theme.label), pos: [0, 16.4, -7.7], win: [20.8, 30] },
+    { sprite: makeLabelSprite('warps', theme.label, 0.45), pos: [SM_X[1], 6.1, SM_Z[1] - 2.7], win: [33.2, 77] },
+    { sprite: makeLabelSprite('SRAM', theme.label, 0.4), pos: [SM_X[1] - 4.6, SRAM_Y, SRAM_Z0 + 1.4], win: [33.6, 77] },
   ];
   labels.forEach((l) => { l.sprite.position.set(...l.pos); scene.add(l.sprite); });
 
@@ -264,10 +280,13 @@ export function createScene(canvas) {
     hbmMat.color.set('#ffffff');
     blockMat.color.set('#ffffff');
     boardMat.color.set('#ffffff');
+    sramMat.color.set('#ffffff');
     partMat.color.set(theme.particle);
+    dotMat.color.set(theme.particle);
     reqMat.color.set(theme.request);
     beamMat.color.set(theme.beam);
     lineMat.color.set(theme.beam);
+    barrierMat.color.set(theme.blockSel);
     ptsMat.color.set(theme.blockSel);
     hemi.intensity = theme.hemiI;
     hemi.groundColor.set(theme.ground);
@@ -285,7 +304,6 @@ export function createScene(canvas) {
     const u = smooth(t0, t1, t);
     const pos = lerp3(p0, p1, u);
     const tgt = lerp3(g0, g1, u);
-    // user look offset: orbit pos around tgt
     if (yaw !== 0 || pitch !== 0) {
       const v = new THREE.Vector3(pos[0] - tgt[0], pos[1] - tgt[1], pos[2] - tgt[2]);
       const sph = new THREE.Spherical().setFromVector3(v);
@@ -300,9 +318,10 @@ export function createScene(canvas) {
 
   const colA = new THREE.Color();
 
-  /* which warp row issues at time t (skipping the stalled row during ch4) */
+  /* which warp row issues at time t (load phase 33–56 only; the reduction
+     drives lanes from reduceState instead) */
   function activeRow(t) {
-    if (t < 33) return -1;
+    if (t < 33 || t >= REDUCE_T0) return -1;
     const cycle = Math.floor((t - 33) / 0.35);
     if (t >= 45 && t < 53) {
       const rows = [0, 1, 3, 4, 5, 6, 7];
@@ -311,12 +330,18 @@ export function createScene(canvas) {
     return cycle % 8;
   }
 
-  function update(t, opts) {
-    const { yaw = 0, pitch = 0, coalesced = true, selBlock = 31, selTid = 140 } = opts;
-    cameraAt(t, yaw, pitch);
+  /* when each SRAM cell fills during the ch3 load, per access pattern */
+  function cellFillTime(idx, coalesced) {
+    if (coalesced) return 34 + Math.floor(idx / 32) * 1.05;
+    return 34 + (idx / 256) * 8.6 + hash(idx) * 0.3;
+  }
 
-    /* labels: anatomy labels stay on the whole film; contextual ones
-       fade in/out with their window */
+  function update(t, opts) {
+    const { yaw = 0, pitch = 0, coalesced = true, selBlock = FOCUS_BLOCK, selTid = 140 } = opts;
+    cameraAt(t, yaw, pitch);
+    const rs = reduceState(t);
+
+    /* labels */
     labels.forEach((l) => {
       let op;
       if (l.win) {
@@ -334,7 +359,6 @@ export function createScene(canvas) {
         const idx = tI * SLABS_PER_TOWER + s;
         const fill = smooth(9 + s * 1.5, 10.2 + s * 1.5, t);
         colA.copy(C.hbmDim).lerp(C.hbm, fill);
-        // request hits the west-front tower around t≈49
         if (tI === 0 && t >= 48.6 && t <= 50.2) {
           colA.lerp(C.blockSel, 0.5 * Math.sin(((t - 48.6) / 1.6) * Math.PI));
         }
@@ -347,12 +371,10 @@ export function createScene(canvas) {
     for (let i = 0; i < SM_COUNT; i++) {
       let active = 0;
       for (let slot = 0; slot < 3; slot++) {
-        // representative block for (sm, slot) in wave 1
         const b = slot * 24 + i;
         const sc = blockSchedule(b);
         if (t >= sc.land && t < sc.retire) active = 1;
       }
-      // wave 2 tenants
       const b2 = 72 + i;
       const sc2 = blockSchedule(b2);
       if (t >= sc2.land && t < sc2.retire) active = 1;
@@ -361,15 +383,21 @@ export function createScene(canvas) {
     }
     sms.instanceColor.needsUpdate = true;
 
-    /* blocks */
-    const boardOpen = smooth(32, 33, t) * (1 - smooth(65.5, 66.5, t));
+    /* blocks: ribbon (18–20.5) → hover grid (20.5–22) → schedule */
+    const boardOpen = smooth(32, 33, t) * (1 - smooth(77, 78, t));
     for (let b = 0; b < GRID_BLOCKS; b++) {
       const sc = blockSchedule(b);
-      const appear = 18.5 + (b / GRID_BLOCKS) * 2.5;
-      let p; let scale = smooth(appear, appear + 0.7, t);
-      if (t < sc.depart) {
+      const appear = 18.2 + (b / GRID_BLOCKS) * 1.6;
+      let p; let scale = smooth(appear, appear + 0.5, t);
+      let sx = 1, sy = 1, sz = 1;
+      if (t < 22) {
+        const u = smooth(20.5, 22, t);
+        p = lerp3(ribbonPos(b), hoverPos(b), u);
+        // ribbon segments are thin slices that fatten into cubes
+        sx = 0.28 + (1 - 0.28) * u;
+        sz = 1.6 - 0.6 * u;
+      } else if (t < sc.depart) {
         p = hoverPos(b);
-        // gentle idle bob while waiting
         p = [p[0], p[1] + Math.sin(t * 1.7 + b) * 0.15, p[2]];
       } else if (t < sc.land) {
         const u = smooth(sc.depart, sc.land, t);
@@ -380,11 +408,13 @@ export function createScene(canvas) {
         const gone = smooth(sc.retire, sc.retire + 0.8, t);
         scale *= 1 - gone;
       }
-      // the focus block unfolds into the warp board (fixed — the camera
-      // dives into FOCUS_SM regardless of which block the user clicked)
       if (b === FOCUS_BLOCK) scale *= 1 - boardOpen;
       dummy.position.set(...p);
-      dummy.scale.setScalar(Math.max(scale, 0.0001));
+      dummy.scale.set(
+        Math.max(scale * sx, 0.0001),
+        Math.max(scale * sy, 0.0001),
+        Math.max(scale * sz, 0.0001),
+      );
       dummy.updateMatrix();
       blocks.setMatrixAt(b, dummy.matrix);
       colA.copy(b === selBlock ? C.blockSel : C.block);
@@ -398,21 +428,28 @@ export function createScene(canvas) {
     if (board.visible) {
       const act = activeRow(t);
       const stalled = t >= 45 && t < 53 ? 2 : -1;
+      const reducing = t >= REDUCE_T0 && rs.phase !== 'done';
+      const barrierOn = rs.phase === 'barrier' && rs.slow;
+      const barrierPulse = barrierOn ? Math.sin((t % 1) * Math.PI) : 0;
       for (let r = 0; r < WARP_ROWS; r++) {
         for (let l = 0; l < 32; l++) {
           const idx = r * 32 + l;
           const p = boardLanePos(r, l);
           dummy.position.set(...p);
-          const isAct = r === act;
+          const isAct = !reducing && r === act;
           dummy.scale.setScalar(boardOpen * (isAct ? 1.35 : 1));
           dummy.updateMatrix();
           board.setMatrixAt(idx, dummy.matrix);
           if (idx === selTid) colA.copy(C.warpSel);
           else if (r === stalled) colA.copy(C.warpStall);
-          else if (isAct) colA.copy(C.warpActive);
+          else if (reducing) {
+            // active lanes = threadIdx < s
+            if (idx < rs.s && rs.phase === 'add') colA.copy(C.warpActive);
+            else colA.copy(C.warpDim);
+            if (barrierOn) colA.lerp(C.warpActive, 0.55 * Math.abs(barrierPulse));
+          } else if (isAct) colA.copy(C.warpActive);
           else colA.copy(C.warpDim);
-          // reactivation flash after the load returns
-          if (r === 2 && t >= 53 && t < 54) colA.lerp(C.warpActive, Math.sin(((t - 53)) * Math.PI));
+          if (r === 2 && t >= 53 && t < 54) colA.lerp(C.warpActive, Math.sin((t - 53) * Math.PI));
           board.setColorAt(idx, colA);
         }
       }
@@ -420,7 +457,58 @@ export function createScene(canvas) {
       board.instanceColor.needsUpdate = true;
     }
 
-    /* memcpy (ch1) and writeback (ch6) particles */
+    /* SRAM plate: fill during ch3, tree-collapse during ch5–6 */
+    const plateOpen = smooth(32.5, 33.5, t) * (1 - smooth(77.5, 78.5, t));
+    sram.visible = plateOpen > 0.001;
+    if (sram.visible) {
+      for (let c = 0; c < 256; c++) {
+        const ft = cellFillTime(c, coalesced);
+        const filled = t >= REDUCE_T0 ? 1 : smooth(ft, ft + 0.4, t);
+        let p = sramCellPos(c);
+        let scale = plateOpen;
+        let bright = filled;
+        if (t >= REDUCE_T0) {
+          if (rs.phase === 'done') {
+            if (c !== 0) scale = 0;
+            else bright = 1.2;
+          } else if (rs.phase === 'add') {
+            if (c >= rs.alive) scale = 0;                       // retired in earlier rounds
+            else if (c >= rs.s) {
+              // this half is flying into its partner
+              const u = smooth(0.15, 0.95, rs.mergeU);
+              p = lerp3(sramCellPos(c), sramCellPos(c - rs.s), u);
+              scale *= 1 - smooth(0.85, 1, rs.mergeU);
+            } else {
+              bright = 1 + 0.3 * Math.sin(rs.mergeU * Math.PI); // receiving
+            }
+          } else {
+            if (c >= rs.s) scale = 0;
+          }
+        }
+        dummy.position.set(...p);
+        dummy.scale.setScalar(Math.max(scale, 0.0001));
+        dummy.updateMatrix();
+        sram.setMatrixAt(c, dummy.matrix);
+        colA.copy(C.sramCell).lerp(C.sramFill, clamp01(bright));
+        if (bright > 1) colA.lerp(C.request, clamp01(bright - 1));
+        sram.setColorAt(c, colA);
+      }
+      sram.instanceMatrix.needsUpdate = true;
+      sram.instanceColor.needsUpdate = true;
+    }
+
+    /* __syncthreads() flash — slow rounds only: its absence in the warp
+       finale (ch6) is the point */
+    if (rs.phase === 'barrier' && rs.slow) {
+      barrier.visible = true;
+      const u = clamp01((t - (ROUND_ADD_END(rs.round))) / 0.8);
+      barrierMat.opacity = Math.sin(u * Math.PI) * 0.65;
+      barrier.position.x = SM_X[1];
+    } else {
+      barrier.visible = false;
+    }
+
+    /* memcpy particles (ch1) */
     for (let pI = 0; pI < PARTS; pI++) {
       let p = null; let scale = 0;
       const tower = TOWERS[pI % 4];
@@ -433,15 +521,6 @@ export function createScene(canvas) {
           p = lerp3(src, dst, smooth(0, 1, u));
           scale = Math.sin(u * Math.PI);
         }
-      } else if (t >= 68 && t < 74) {
-        const start = 68.2 + hash(pI) * 3.4;
-        const u = (t - start) / 1.6;
-        if (u >= 0 && u <= 1) {
-          const src = [tower[0], 4.5, tower[1]];
-          const dst = [52, 16 + hash(pI + 40) * 8, 18 + hash(pI + 80) * 14];
-          p = lerp3(src, dst, u * u);
-          scale = Math.sin(u * Math.PI);
-        }
       }
       dummy.position.set(...(p ?? [0, -10, 0]));
       dummy.scale.setScalar(Math.max(scale, 0.0001));
@@ -450,17 +529,55 @@ export function createScene(canvas) {
     }
     parts.instanceMatrix.needsUpdate = true;
 
+    /* partial-sum dots (ch7–8): SM → HBM, then HBM → SM 00, collapse to 1 */
+    for (let b = 0; b < GRID_BLOCKS; b++) {
+      const sm = blockSchedule(b).sm;
+      const tower = TOWERS[sm % 4];
+      const src = [smPos(sm)[0], 3.4, smPos(sm)[2]];
+      const hbmP = [tower[0] + (hash(b) - 0.5) * 3, 2.2 + hash(b + 9) * 2.2, tower[1] + (hash(b + 5) - 0.5) * 5];
+      const sm0 = [SM_X[0], 3.4, SM_Z[0]];
+      let p = null; let scale = 0;
+      const dropStart = 78.4 + (b / 96) * 3.6;
+      const flyStart = 85.2 + (b / 96) * 1.4;
+      if (t >= dropStart && t < flyStart) {
+        const u = clamp01((t - dropStart) / 1.2);
+        p = lerp3(src, hbmP, smooth(0, 1, u));
+        scale = 1;
+      } else if (t >= flyStart && t < 88.5) {
+        const u = clamp01((t - flyStart) / 1.2);
+        p = lerp3(hbmP, sm0, smooth(0, 1, u));
+        p[1] += Math.sin(u * Math.PI) * 2;
+        scale = 1;
+      } else if (t >= 88.5) {
+        if (b === 0) {
+          // the final sum: linger, then travel HBM → out of frame
+          if (t < 90) { p = sm0; scale = 1.6; }
+          else if (t < 92) { p = lerp3(sm0, [-21, 3.4, -6], smooth(90, 92, t)); scale = 1.6; }
+          else if (t < 93.2) { p = [-21, 3.4, -6]; scale = 1.6; }
+          else if (t < 96.5) { p = lerp3([-21, 3.4, -6], [-50, 16, 22], smooth(93.2, 96.5, t)); scale = 1.4; }
+        } else {
+          const gone = smooth(88.5, 89.3, t);
+          p = sm0; scale = 1 - gone;
+        }
+      }
+      dummy.position.set(...(p ?? [0, -10, 0]));
+      dummy.scale.setScalar(Math.max(scale, 0.0001));
+      dummy.updateMatrix();
+      dots.setMatrixAt(b, dummy.matrix);
+    }
+    dots.instanceMatrix.needsUpdate = true;
+
     /* ch4 memory request round-trip */
     if (t >= 45 && t <= 53.2) {
       req.visible = true;
       const u = (t - 45) / 8;
       const P0 = rowCenter(2);
-      const P1 = [SM_X[1], 1.7, 0];         // L2, under the focus SM column
-      const P2 = [-18.6, 3.2, -6];          // west HBM tower face
+      const P1 = [SM_X[1], 1.7, 0];
+      const P2 = [-18.6, 3.2, -6];
       let p;
       if (u < 0.22) p = lerp3(P0, P1, smooth(0, 0.22, u));
       else if (u < 0.48) p = lerp3(P1, P2, smooth(0.22, 0.48, u));
-      else if (u < 0.56) p = P2;            // dwell: the slow part
+      else if (u < 0.56) p = P2;
       else if (u < 0.82) p = lerp3(P2, P1, smooth(0.56, 0.82, u));
       else p = lerp3(P1, P0, smooth(0.82, 1, u));
       req.position.set(...p);
@@ -470,27 +587,31 @@ export function createScene(canvas) {
       req.visible = false;
     }
 
-    /* ch5 beams */
-    const beamsOn = t >= 58.6 && t < 67.5;
+    /* ch3 load beams: HBM → SRAM plate */
+    const beamsOn = t >= 33.8 && t < 43.4;
     const pulse = 0.55 + 0.35 * Math.sin(t * 5);
     if (beamsOn && coalesced) {
-      fatBeam.visible = true; gather.visible = true; scatter.visible = false;
-      setBeam(fatBeam, rowCenter(focusRow), [-18.8, 3.4, -2], 0.26);
+      fatBeam.visible = true; scatter.visible = false;
+      setBeam(fatBeam, [-18.6, 3.4, -6], PLATE_CENTER, 0.26);
       beamMat.opacity = pulse;
-      lineMat.opacity = 0.5;
     } else if (beamsOn) {
-      fatBeam.visible = false; gather.visible = false; scatter.visible = true;
+      fatBeam.visible = false; scatter.visible = true;
       lineMat.opacity = pulse;
     } else {
-      fatBeam.visible = false; gather.visible = false; scatter.visible = false;
+      fatBeam.visible = false; scatter.visible = false;
     }
 
-    /* million-thread flash */
-    const cloudOp = smooth(29.5, 30.4, t) * (1 - smooth(31.2, 32, t));
+    /* million-thread flash (end of ch2) */
+    const cloudOp = smooth(28, 28.8, t) * (1 - smooth(29.6, 30.4, t));
     cloud.visible = cloudOp > 0.01;
     ptsMat.opacity = cloudOp * 0.55;
 
     renderer.render(scene, camera);
+  }
+
+  /* barrier timing helper (matches ROUNDS in script.js: slow rounds only) */
+  function ROUND_ADD_END(k) {
+    return REDUCE_T0 + k * 4 + 3.2;
   }
 
   /* picking */
@@ -504,7 +625,7 @@ export function createScene(canvas) {
     if (chapterId === 2) {
       const hit = raycaster.intersectObject(blocks)[0];
       if (hit && hit.instanceId != null) return { type: 'block', id: hit.instanceId };
-    } else if (chapterId >= 3 && chapterId <= 5) {
+    } else if (chapterId >= 3 && chapterId <= 6) {
       const hit = raycaster.intersectObject(board)[0];
       if (hit && hit.instanceId != null) return { type: 'lane', id: hit.instanceId };
     }

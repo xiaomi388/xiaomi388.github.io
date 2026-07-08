@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createScene, THEMES } from './scene.js';
 import {
-  TOTAL, CHAPTERS, chapterAt, CODE_SEGMENTS, UI_STR,
-  FOCUS_BLOCK, FOCUS_TID, blockSchedule,
+  TOTAL, CHAPTERS, chapterAt, codeFor, CODE_SEGMENTS, UI_STR,
+  FOCUS_BLOCK, FOCUS_TID, blockSchedule, reduceState,
 } from './script.js';
 
 /* Monokai token colors for the hand-tokenized code panel */
@@ -149,11 +149,17 @@ export default function KernelSandbox({ lang = 'en', theme = 'light' }) {
     setPlaying(c.playing);
   };
 
+  /* code segment + highlight lines for the current moment */
+  const { seg: activeSegId, lines: hlLines } = codeFor(ch, t);
+  const rs = reduceState(t);
+
   /* the annotation line under the code panel, per chapter */
   const annotation =
     ch.id === 2 ? s.blockNote(selBlock, blockSchedule(selBlock).sm)
     : ch.id === 3 ? s.laneNote(FOCUS_BLOCK, selTid)
-    : ch.id === 5 ? s.transactions(coalesced ? 1 : 32)
+    : ch.id === 5 ? s.reduceNote(rs.s, rs.active, rs.phase === 'barrier')
+    : ch.id === 6 ? s.finaleNote(rs.s)
+    : ch.id === 7 ? s.partialNote
     : null;
 
   const zhLang = lang === 'zh' ? 'zh' : undefined;
@@ -219,14 +225,14 @@ export default function KernelSandbox({ lang = 'en', theme = 'light' }) {
             boxShadow: '0 2px 10px rgba(0,0,0,.25)', overflowX: 'auto',
           }}>
             {CODE_SEGMENTS.map((seg) => {
-              const activeSeg = ch.code === seg.id;
+              const activeSeg = activeSegId === seg.id;
               return (
                 <div key={seg.id} style={{ opacity: activeSeg ? 1 : 0.45, marginBottom: 6 }}>
                   <div style={{ color: '#75715e', fontSize: 11, padding: '0 14px 2px' }}>
                     {seg.label[lang]}
                   </div>
                   {seg.lines.map((line) => {
-                    const hl = activeSeg && ch.hl === line.n;
+                    const hl = activeSeg && hlLines.includes(line.n);
                     return (
                       <div key={line.n} style={{
                         padding: '0 14px', whiteSpace: 'pre',
@@ -267,8 +273,8 @@ export default function KernelSandbox({ lang = 'en', theme = 'light' }) {
           {ch.id + 1} / {CHAPTERS.length} · {ch.title[lang]}
         </div>
         {ch.cap[lang]}
-        {ch.id === 5 && (
-          <div style={{ marginTop: 9, display: 'flex', alignItems: 'center', gap: 10 }}>
+        {ch.id === 3 && (
+          <div style={{ marginTop: 9, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: 'var(--fg-3)' }}>{s.accessLabel}</span>
             <span style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 5, overflow: 'hidden' }}>
               {[[true, s.coalesced], [false, s.scattered]].map(([v, label]) => (
@@ -282,8 +288,8 @@ export default function KernelSandbox({ lang = 'en', theme = 'light' }) {
                 </button>
               ))}
             </span>
-            <span className="gx-mono" style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: coalesced ? 'var(--fg-3)' : '#c62828' }}>
-              {s.transactions(coalesced ? 1 : 32)}
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: coalesced ? 'var(--fg-3)' : '#c62828' }}>
+              {s.transactions(coalesced)}
             </span>
           </div>
         )}
