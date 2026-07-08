@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { parseFrontmatter, renderMarkdown } from '../src/lib/markdown.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SITE = 'https://notes.xiaomi388.com';
+const SITE = 'https://blog.xiaomi388.com';
 const TITLE = 'Yufan Chen';
 
 const esc = (s) =>

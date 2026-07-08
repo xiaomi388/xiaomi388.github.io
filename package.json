@@ -1,9 +1,9 @@
 {
-  "name": "notes-xiaomi388-com",
+  "name": "blog-xiaomi388-com",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Interactive CS/AI sandboxes — playable explanations. notes.xiaomi388.com",
+  "description": "Yufan Chen's blog + interactive CS/AI sandboxes. blog.xiaomi388.com",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/gen-feeds.mjs && cp dist/index.html dist/404.html",

@@ -1,4 +1,4 @@
-# notes.xiaomi388.com
+# blog.xiaomi388.com
 
 A personal site combining a **blog** (markdown posts, migrated from the old
 Hugo/Coder blog) and a notebook of **interactive CS/AI sandboxes** — playable
@@ -87,4 +87,4 @@ lives in its own dark visual world.
 ## Deploy
 
 Pushing to `main` runs `.github/workflows/deploy.yml`: it builds with Vite and
-publishes `dist/` to GitHub Pages under the `notes.xiaomi388.com` custom domain.
+publishes `dist/` to GitHub Pages under the `blog.xiaomi388.com` custom domain.

@@ -2,8 +2,8 @@
 
 A personal site combining a **blog** (markdown posts, migrated from the old Hugo/Coder blog) and a learning notebook of **interactive CS/AI sandboxes** — playable explanations of mechanisms that are usually only described in prose (GPU scheduling, backpropagation, matrix multiplication, and so on).
 
-- **Production**: `https://notes.xiaomi388.com`
-- **Design ground truth**: the Hugo Coder theme at `~/Developer/blog` (the old blog's source). The chrome is a pixel-level copy of it; when in doubt, measure against `hugo server` there.
+- **Production**: `https://blog.xiaomi388.com` (GitHub repo: `xiaomi388/xiaomi388.github.io`)
+- **Design ground truth**: the Hugo Coder theme at `~/Developer/blog` (the retired Hugo blog's local source, kept for reference). The chrome is a pixel-level copy of it; when in doubt, measure against `hugo server` there.
 - **Author**: Yufan Chen
 
 ## Adding content
@@ -42,7 +42,7 @@ Each entry is a self-contained sandbox: a focused interactive page about one con
 
 ## Constraints
 
-- **Hosting**: GitHub Pages, custom subdomain `notes.xiaomi388.com`. Static output only.
+- **Hosting**: GitHub Pages, custom subdomain `blog.xiaomi388.com`. Static output only.
 - **Languages**: English and Simplified Chinese, equal status, both deployed.
 - **Browsers**: Modern evergreen. No IE / legacy concerns.
 - **Mobile**: Should be usable on a phone but desktop is the primary target — sandboxes are dense.
