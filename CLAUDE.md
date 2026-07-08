@@ -1,10 +1,16 @@
 # Notes
 
-A personal learning notebook of **interactive CS/AI sandboxes** — playable explanations of mechanisms that are usually only described in prose (GPU scheduling, backpropagation, matrix multiplication, and so on).
+A personal site combining a **blog** (markdown posts, migrated from the old Hugo/Coder blog) and a learning notebook of **interactive CS/AI sandboxes** — playable explanations of mechanisms that are usually only described in prose (GPU scheduling, backpropagation, matrix multiplication, and so on).
 
 - **Production**: `https://notes.xiaomi388.com`
-- **Sister site**: `https://blog.xiaomi388.com` (Hugo, Coder theme). The blog holds writing; Notes holds the things you can poke at.
+- **Design ground truth**: the Hugo Coder theme at `~/Developer/blog` (the old blog's source). The chrome is a pixel-level copy of it; when in doubt, measure against `hugo server` there.
 - **Author**: Yufan Chen
+
+## Adding content
+
+- **New blog post**: drop a `.md` file into `src/content/en/posts/` and its twin into `src/content/zh/posts/` (same filename = same post, linked language switch). Frontmatter is the Hugo TOML `+++` block (`title`, `date`, `tags`, `draft`). No registration step.
+- **About**: edit `src/content/<lang>/about.md`.
+- **New sandbox**: register in `src/i18n/sandboxes.js`, component under `src/sandboxes/`.
 
 ---
 
@@ -23,7 +29,7 @@ Each entry is a self-contained sandbox: a focused interactive page about one con
 **Vibe-coding first.** Optimize for flow, not engineering rigor. No monorepo, no design system, no Storybook, no test pyramid. Reach for the smallest thing that works. When in doubt, do less.
 
 **Two visual layers, with a hard boundary.**
-- The **site shell** (nav, index, about, footer) is minimal and typographic, matching the sister blog's Hugo Coder aesthetic. No gradients, no decorative panels, no flourish.
+- The **site shell** (nav, home, blog pages, about, footer) is minimal and typographic, a pixel-level copy of the Hugo Coder blog aesthetic. No gradients, no decorative panels, no flourish.
 - The **inside of a sandbox** is free to express its subject. A GPU sandbox can look like a chip die; a backprop sandbox can look like a notebook page; a matmul sandbox can look like a spreadsheet. They each get their own world — but that world stays inside its sandbox container and never leaks into the chrome.
 
 **Bilingual, both first-class.** Every sandbox, every page of chrome, every label, every explanation must exist in **both English and Chinese**. Neither language is a translation afterthought. URL structure should mirror the sister blog's `/en/…` and `/zh/…` convention so the two sites feel like one. Technical terms (CUDA, SIMT, PTX instructions, variable names) can stay in English in both versions — that's natural for the audience.

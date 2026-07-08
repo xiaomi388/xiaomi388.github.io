@@ -42,6 +42,9 @@ export default function SandboxPage({ sandbox, sandboxes, lang, t }) {
         overflow: 'hidden',
         background: D.bg,
         color: D.fg,
+        // Dark UI keeps grayscale antialiasing (the light chrome uses the
+        // platform default to match the blog's text rendering).
+        WebkitFontSmoothing: 'antialiased',
       }}
     >
       {/* App bar */}

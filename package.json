@@ -6,11 +6,14 @@
   "description": "Interactive CS/AI sandboxes — playable explanations. notes.xiaomi388.com",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cp dist/index.html dist/404.html",
+    "build": "vite build && node scripts/gen-feeds.mjs && cp dist/index.html dist/404.html",
     "preview": "vite preview"
   },
   "dependencies": {
     "d3": "^7.9.0",
+    "highlight.js": "^11.11.1",
+    "marked": "^18.0.5",
+    "mermaid": "^11.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2"

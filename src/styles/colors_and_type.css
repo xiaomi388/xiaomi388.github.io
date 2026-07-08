@@ -1,13 +1,10 @@
 /* =============================================================================
    Notes (notes.xiaomi388.com) — Design System · Foundations
-   Grounded in the hugo-coder blog at blog.xiaomi388.com.
-   Shares the same clean sans-serif system font, white/dark palette, and blue
-   accent as the blog. Notes is allowed to be more crafted — the only additions
-   are a proper monospace for code/meta and slightly more generous spacing.
+   Token-for-token match with the hugo-coder blog at blog.xiaomi388.com.
+   Values are taken from the blog's compiled coder.min.css / coder-dark.min.css:
+   same system font stacks (sans + CJK + mono), same palette, same type scale.
+   No webfonts beyond the self-hosted Font Awesome subset.
    ============================================================================= */
-
-/* Google Fonts — must precede all other statements (CSS @import rule). */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@400;500&display=swap');
 
 /* ------------------------------------------------------------------
    FONT AWESOME  (self-hosted, matching the blog exactly)
@@ -62,86 +59,74 @@
 .fa-external-link-alt::before { content: "\f35d"; }
 
 /* ------------------------------------------------------------------
-   MONOSPACE  (JetBrains Mono from Google Fonts — the one addition
-   beyond the blog's system font. Used for code, meta, and sandbox
-   labels. Replaces the blog's bare monospace fallback. The @import
-   itself lives at the very top of this file — CSS requires @import to
-   precede all other statements.)
-   ------------------------------------------------------------------ */
-
-/* ------------------------------------------------------------------
-   TYPE FAMILIES
-   body  — system sans, identical to the blog
-   mono  — JetBrains Mono for code & metadata
-   CJK   — Noto Serif SC / Noto Sans SC overlay
+   TYPE FAMILIES — the blog's exact stacks (system fonts only).
+   The sans stack already carries the CJK faces (PingFang SC,
+   Microsoft YaHei, …), so there is no separate CJK family.
    ------------------------------------------------------------------ */
 :root {
-  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  --font-cjk-sans: 'Noto Sans SC', var(--font-body);
-  --font-cjk-serif: 'Noto Serif SC', Georgia, serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', Helvetica, '游ゴシック', 'PingFang SC', STXihei, '华文细黑', 'Microsoft YaHei', '微软雅黑', SimSun, '宋体', Heiti, '黑体', sans-serif;
+  --font-mono: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
 /* ------------------------------------------------------------------
-   TYPE SCALE
-   Base 16px. Matches the blog's default browser sizing.
+   TYPE SCALE — px, lifted verbatim from the blog's compiled CSS.
+   body 18 / nav 17 / h1 32 / h2 28 / h3 24 / page title 42.
    ------------------------------------------------------------------ */
 :root {
-  --fs-xs:    0.75rem;   /* 12px  labels, eyebrows  */
-  --fs-sm:    0.875rem;  /* 14px  captions, meta     */
-  --fs-base:  1rem;      /* 16px  nav, body          */
-  --fs-md:    1.125rem;  /* 18px  comfortable reading*/
-  --fs-lg:    1.375rem;  /* 22px  h3                 */
-  --fs-xl:    1.75rem;   /* 28px  h2                 */
-  --fs-2xl:   2.25rem;   /* 36px  h1                 */
-  --fs-3xl:   2.875rem;  /* 46px  page title         */
+  --fs-xs:    14px;   /* meta, labels, eyebrows */
+  --fs-sm:    16px;   /* captions, footer, small */
+  --fs-base:  18px;   /* body */
+  --fs-nav:   17px;   /* nav title + links */
+  --fs-md:    18px;   /* reading text (same as body on the blog) */
+  --fs-lg:    24px;   /* h3 */
+  --fs-xl:    28px;   /* h2 */
+  --fs-2xl:   32px;   /* h1 */
+  --fs-3xl:   42px;   /* page title (.content header h1) */
 
-  --lh-tight:  1.2;
+  --lh-tight:  1.15;
   --lh-snug:   1.4;
-  --lh-normal: 1.6;
-  --lh-relaxed:1.75;
-  --lh-cjk:    1.9;     /* CJK body needs more leading */
-  --measure:   65ch;    /* prose max-width */
+  --lh-normal: 1.8;   /* blog body line-height (zh included — blog uses 1.8 everywhere) */
+  --lh-relaxed:1.8;
+  --measure:   65ch;  /* prose max-width */
 }
 
 /* ------------------------------------------------------------------
-   COLOR TOKENS
-   Light mode — grounded in the blog's defaults.
+   COLOR TOKENS — Light mode, exact blog values.
    ------------------------------------------------------------------ */
 :root,
 [data-theme='light'] {
-  --bg:           #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-code:      #f0f0f0;
+  --bg:           #fafafa;
+  --bg-secondary: #efefef;
+  --bg-code:      #cccccc;
 
-  --fg:           #333333;   /* body text — same as Coder */
-  --fg-2:         #555555;   /* secondary text */
-  --fg-3:         #888888;   /* muted — dates, meta */
+  --heading:      #000000;   /* blog headings are pure black */
+  --fg:           #212121;   /* body text */
+  --fg-2:         #424242;   /* secondary text */
+  --fg-3:         #757575;   /* muted — dates, meta */
 
-  --border:       #e5e5e5;
+  --border:       #e0e0e0;
   --border-strong:#cccccc;
 
-  /* Blue accent — matching the blog's dark-mode link color
-     but slightly deeper for light-mode contrast */
-  --accent:       #1a6fcf;
-  --accent-hover: #1358a8;
+  --accent:       #1565c0;   /* blog link blue */
+  --accent-hover: #1565c0;   /* blog hover = underline, not a color shift */
   --accent-soft:  #e8f0fb;
 
-  --tag-bg:       #eeeeee;
-  --tag-fg:       #444444;
+  --tag-bg:       #e0e0e0;
+  --tag-fg:       #212121;
 
   color-scheme: light;
 }
 
 /* ------------------------------------------------------------------
-   COLOR TOKENS  — Dark mode
-   Exact match to the blog: bg #212121, text #dadada, link #42a5f5
+   COLOR TOKENS — Dark mode, exact blog values.
+   bg #212121, text #dadada, link #42a5f5, code #4f4f4f, borders #424242
    ------------------------------------------------------------------ */
 [data-theme='dark'] {
   --bg:           #212121;
   --bg-secondary: #2a2a2a;
-  --bg-code:      #2d2d2d;
+  --bg-code:      #4f4f4f;
 
+  --heading:      #dadada;
   --fg:           #dadada;
   --fg-2:         #bbbbbb;
   --fg-3:         #888888;
@@ -149,8 +134,8 @@
   --border:       #424242;
   --border-strong:#555555;
 
-  --accent:       #42a5f5;   /* exact blog dark-mode link color */
-  --accent-hover: #64b5f6;
+  --accent:       #42a5f5;
+  --accent-hover: #42a5f5;
   --accent-soft:  #1a2a3d;
 
   --tag-bg:       #424242;
@@ -161,23 +146,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --bg: #212121; --bg-secondary: #2a2a2a; --bg-code: #2d2d2d;
-    --fg: #dadada; --fg-2: #bbbbbb; --fg-3: #888888;
+    --bg: #212121; --bg-secondary: #2a2a2a; --bg-code: #4f4f4f;
+    --heading: #dadada; --fg: #dadada; --fg-2: #bbbbbb; --fg-3: #888888;
     --border: #424242; --border-strong: #555555;
-    --accent: #42a5f5; --accent-hover: #64b5f6; --accent-soft: #1a2a3d;
+    --accent: #42a5f5; --accent-hover: #42a5f5; --accent-soft: #1a2a3d;
     --tag-bg: #424242; --tag-fg: #dadada;
     color-scheme: dark;
   }
 }
 
 /* ------------------------------------------------------------------
-   SEMANTIC TYPE CLASSES
+   SEMANTIC TYPE CLASSES — blog headings: weight 600, pure black.
    ------------------------------------------------------------------ */
-.t-h1    { font-size: var(--fs-2xl); font-weight: 700; line-height: var(--lh-tight); color: var(--fg); }
-.t-h2    { font-size: var(--fs-xl);  font-weight: 600; line-height: var(--lh-snug);  color: var(--fg); }
-.t-h3    { font-size: var(--fs-lg);  font-weight: 600; line-height: var(--lh-snug);  color: var(--fg); }
-.t-body  { font-size: var(--fs-md);  line-height: var(--lh-relaxed); color: var(--fg-2); max-width: var(--measure); }
-.t-small { font-size: var(--fs-sm);  line-height: var(--lh-normal);  color: var(--fg-3); }
+.t-h1    { font-size: var(--fs-2xl); font-weight: 600; line-height: var(--lh-tight); color: var(--heading); }
+.t-h2    { font-size: var(--fs-xl);  font-weight: 600; line-height: var(--lh-snug);  color: var(--heading); }
+.t-h3    { font-size: var(--fs-lg);  font-weight: 600; line-height: var(--lh-snug);  color: var(--heading); }
+.t-body  { font-size: var(--fs-md);  line-height: var(--lh-relaxed); color: var(--fg); max-width: var(--measure); }
+.t-small { font-size: var(--fs-sm);  line-height: 1.6;  color: var(--fg-3); }
 .t-meta  {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
@@ -192,23 +177,26 @@
   color: var(--fg-3);
 }
 
-/* Links — matching blog behavior: colored, underline on hover */
+/* Links — blog behavior: blue, weight 500, underline on hover */
 a {
   color: var(--accent);
+  font-weight: 500;
   text-decoration: none;
   word-wrap: break-word;
+  transition: all 0.25s ease-in;
 }
-a:hover, a:focus { text-decoration: underline; color: var(--accent-hover); }
+a:hover, a:focus { text-decoration: underline; }
 
-/* Inline code — matching blog */
+/* Inline code — blog: 1.6rem / 0.3rem 0.6rem / 0.6rem radius at 1rem=10px */
 code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: 16px;
+  font-weight: 400;
   background: var(--bg-code);
-  padding: 0.15em 0.35em;
-  border-radius: 3px;
+  padding: 3px 6px;
+  border-radius: 6px;
   color: var(--fg);
 }
-
-/* CJK adjustments */
-:lang(zh) { line-height: var(--lh-cjk); }
+@media only screen and (max-width: 768px) {
+  code { font-size: 15px; }
+}

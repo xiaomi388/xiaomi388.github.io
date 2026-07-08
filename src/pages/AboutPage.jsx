@@ -1,57 +1,25 @@
-// Centered bio page, matching the hugo-coder blog about style.
-export default function AboutPage({ lang, t }) {
-  return (
-    <div>
-      <section className="about-centered">
-        <div className="container">
-          <h1>{t.aboutTitle}</h1>
-          <p
-            style={{
-              color: 'var(--fg-3)',
-              marginTop: 'var(--s-2)',
-              fontSize: 'var(--fs-sm)',
-            }}
-          >
-            notes.xiaomi388.com
-          </p>
-          <ul className="about-links">
-            <li>
-              <a href="https://github.com/xiaomi388" target="_blank" rel="noopener">
-                <i className="fab fa-github"></i>github
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://blog.xiaomi388.com/index.xml"
-                target="_blank"
-                rel="noopener"
-              >
-                <i className="fas fa-rss"></i>rss
-              </a>
-            </li>
-            <li>
-              <a href="https://blog.xiaomi388.com" target="_blank" rel="noopener">
-                blog
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { getAbout } from '../lib/posts.js';
+import { renderMarkdown } from '../lib/markdown.js';
 
-      <div className="container" style={{ paddingBottom: 'var(--s-9)' }}>
-        <hr style={{ margin: '0 0 var(--s-7)' }} />
-        <div className="content">
-          {t.aboutBio.map((p, i) => (
-            <p
-              key={i}
-              lang={lang === 'zh' ? 'zh' : undefined}
-              style={{ marginBottom: 'var(--s-5)' }}
-            >
-              {p}
-            </p>
-          ))}
-        </div>
-      </div>
+// About — the blog's about page: big linked title + rendered markdown,
+// content sourced from src/content/<lang>/about.md.
+export default function AboutPage({ lang }) {
+  const about = getAbout(lang);
+  const html = useMemo(() => (about ? renderMarkdown(about.body) : ''), [about]);
+  if (!about) return null;
+
+  return (
+    <div className="container list page-content" lang={lang === 'zh' ? 'zh' : undefined}>
+      <header className="page-header">
+        <h1>
+          <Link className="title-link" to={`/${lang}/about`}>
+            {about.title}
+          </Link>
+        </h1>
+      </header>
+      <div className="post-content" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }

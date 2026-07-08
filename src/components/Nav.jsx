@@ -1,24 +1,47 @@
 import { Link, useLocation } from 'react-router-dom';
+import { hasTranslation } from '../lib/posts.js';
 
-// Site chrome navigation. Matches the hugo-coder blog structure:
-// site title + nav links + separator + language switch + theme toggle.
-export default function Nav({ kind, lang, t, theme, setTheme }) {
+// Site chrome navigation — the hugo-coder header.html structure verbatim:
+// inline title, hidden checkbox + hamburger label (pure-CSS mobile menu),
+// float-right list of links + | separator + language switch.
+// (The theme toggle is the blog-style floating corner button in App.jsx.)
+export default function Nav({ kind, lang, t }) {
   const location = useLocation();
   const otherLang = lang === 'en' ? 'zh' : 'en';
-  const togglePath = location.pathname.replace(/^\/(en|zh)/, `/${otherLang}`);
+
+  // Like the blog: link to the translated page when it exists, else home.
+  let togglePath = location.pathname.replace(/^\/(en|zh)/, `/${otherLang}`);
+  const postMatch = location.pathname.match(/^\/(en|zh)\/posts\/(.+)$/);
+  if (postMatch && !hasTranslation(otherLang, postMatch[2])) {
+    togglePath = `/${otherLang}`;
+  }
 
   return (
     <nav className="navigation">
-      <div className="container" style={{ maxWidth: 'var(--container-wide)' }}>
+      <section className="container">
         <Link className="navigation-title" to={`/${lang}`}>
           {t.siteTitle}
         </Link>
+        {/* key: remount unchecked on route change — the blog closes it via full page load */}
+        <input type="checkbox" id="menu-toggle" key={location.pathname} />
+        <label className="menu-button float-right" htmlFor="menu-toggle">
+          <i className="fas fa-bars fa-fw" aria-hidden="true"></i>
+        </label>
         <ul className="navigation-list">
           <li className="navigation-item">
             <Link
               className="navigation-link"
-              aria-current={kind === 'home' ? 'page' : undefined}
-              to={`/${lang}`}
+              aria-current={kind === 'posts' ? 'page' : undefined}
+              to={`/${lang}/posts`}
+            >
+              {t.nav.blog}
+            </Link>
+          </li>
+          <li className="navigation-item">
+            <Link
+              className="navigation-link"
+              aria-current={kind === 'sandboxes' ? 'page' : undefined}
+              to={`/${lang}/sandboxes`}
             >
               {t.nav.sandboxes}
             </Link>
@@ -32,30 +55,14 @@ export default function Nav({ kind, lang, t, theme, setTheme }) {
               {t.nav.about}
             </Link>
           </li>
-          <li className="navigation-item">
-            <span className="menu-separator">|</span>
+          <li className="navigation-item menu-separator">
+            <span>|</span>
           </li>
           <li className="navigation-item">
-            <Link
-              className="navigation-link"
-              style={{ whiteSpace: 'nowrap' }}
-              to={togglePath}
-            >
-              {t.lang}
-            </Link>
-          </li>
-          <li className="navigation-item">
-            <button
-              className="nav-toggle"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title="Toggle theme"
-              aria-label="Toggle theme"
-            >
-              <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} fa-fw`}></i>
-            </button>
+            <Link to={togglePath}>{t.lang}</Link>
           </li>
         </ul>
-      </div>
+      </section>
     </nav>
   );
 }

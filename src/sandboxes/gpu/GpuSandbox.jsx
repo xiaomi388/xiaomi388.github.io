@@ -1209,7 +1209,9 @@ export default function GpuSandbox({ lang = 'en' }) {
   return (
     <div className="gx" style={{ height: "100%", overflowY: "auto" }}>
       <style>{GPU_CSS}</style>
-      <div className="gx-wrap">
+      {/* Scale the px-based sandbox interior to match the site's 112.5%
+          root size. `zoom` (not transform: scale) so the scroll area reflows. */}
+      <div className="gx-wrap" style={{ zoom: 1.125 }}>
         <div className="gx-head">
           <div>
             <div className="gx-title">{s.mainTitle}</div>
