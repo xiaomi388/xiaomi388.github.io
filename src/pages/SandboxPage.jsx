@@ -5,10 +5,12 @@ import GpuSandbox from '../sandboxes/gpu/GpuSandbox.jsx';
 // Heavy sandboxes load lazily so their deps (three.js) stay out of the
 // main bundle — same pattern as PostPage's mermaid import.
 const KernelSandbox = lazy(() => import('../sandboxes/kernel/KernelSandbox.jsx'));
+const TransformerSandbox = lazy(() => import('../sandboxes/transformer/TransformerSandbox.jsx'));
 
 const SANDBOX_COMPONENTS = {
   'gpu-architecture': GpuSandbox,
   'kernel-life': KernelSandbox,
+  transformer: TransformerSandbox,
 };
 
 // Full-screen sandbox view. The chrome is a minimal blog-style app bar;

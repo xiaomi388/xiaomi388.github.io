@@ -1,5 +1,23 @@
 export const SANDBOXES = [
   {
+    id: 'transformer',
+    cat: 'N-021',
+    date: '2026-07-09',
+    updated: 'July 9, 2026',
+    mins: 12,
+    tags: ['transformers', 'attention', 'neural-nets'],
+    en: {
+      title: 'A transformer you can dissect',
+      desc: 'A live 18k-parameter model in your browser — trace attention, blocks, and generation on real numbers.',
+      body: 'A tiny transformer (2 layers, 4 heads, d=32) trained on a toy grammar runs live in your browser — every number you see is a real forward pass. Four stations: watch a sentence become a matrix, follow one attention head end to end (Q·K, mask, softmax, ×V — with a head that genuinely learned to find the subject), see why a block alternates communication (attention) with per-token thinking (MLP), and run the autoregressive loop yourself with a temperature slider.',
+    },
+    zh: {
+      title: '一台可以解剖的 transformer',
+      desc: '浏览器里的 1.8 万参数活模型——在真实数字上追踪 attention、block 和生成。',
+      body: '一个在玩具语法上训练的微型 transformer（2 层、4 头、d=32）直接在浏览器里运行——你看到的每个数字都来自真实的前向传播。四个分站：看一句话变成矩阵；把一头 attention 从头到尾拆开（Q·K、mask、softmax、×V——其中一个头真的学会了寻找主语）；看懂 block 为什么交替做「token 间交流」（attention）和「逐 token 独想」（MLP）；再亲手转动自回归循环，配真实的温度滑块。',
+    },
+  },
+  {
     id: 'kernel-life',
     cat: 'N-020',
     date: '2026-07-08',
